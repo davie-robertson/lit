@@ -1,5 +1,25 @@
 # Change Log
 
+## 1.1.1
+
+### Patch Changes
+
+- [#3781](https://github.com/lit/lit/pull/3781) [`41b18f30`](https://github.com/lit/lit/commit/41b18f3004163e9011c822dddf73a8669e3c74d8) - Include node build output in npm package. Fixes "Cannot find module ... ssr-client/node/index.js" errors.
+
+## 1.1.0
+
+### Minor Changes
+
+- [#3720](https://github.com/lit/lit/pull/3720) [`575fb578`](https://github.com/lit/lit/commit/575fb578473031859b59b9ed98634ba091b389f7) - `lit-html/experimental-hydrate.js` and `lit-element/experimental-hydrate-support.js` have been moved to `@lit-labs/ssr-client`.
+
+  The modules in the original location have been marked deprecated and will be removed in a future version.
+
+## 1.0.1
+
+### Patch Changes
+
+- [#2410](https://github.com/lit/lit/pull/2410) [`b9a6962b`](https://github.com/lit/lit/commit/b9a6962b84c841eaabd5c4cbf8687ff34dbfe511) - Correct the link path of CONTRIBUTING.md in README.md files
+
 ## 1.0.0
 
 ### Patch Changes

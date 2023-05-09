@@ -4,28 +4,26 @@ on: [pull_request]
 
 jobs:
   benchmarks:
-    name: benchmarks
+    # Don't run on forks. Benchmarks can't run on forks because secrets aren't
+    # available, which are needed for posting result comments.
+    if: github.event.pull_request.head.repo.id == github.event.pull_request.base.repo.id
 
-    # We can't currently run benchmarks on PRs from forked repos, because the
-    # tachometer action reports results by posting a comment, and we can't post
-    # comments without a github token.
-    if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
+    name: benchmarks
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 16
           cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
+          cache-dependency-path: package-lock.json
+
+      - uses: google/wireit@setup-github-actions-caching/v1
 
       - name: NPM install
         run: npm ci
-
-      - name: Lerna bootstrap
-        run: npm run bootstrap
 
       - name: Build
         run: npm run build

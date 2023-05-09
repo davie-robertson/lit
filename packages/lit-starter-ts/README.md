@@ -2,6 +2,10 @@
 
 This project includes a sample component using LitElement with TypeScript.
 
+This template is generated from the `lit-starter-ts` package in [the main Lit
+repo](https://github.com/lit/lit). Issues and PRs for this template should be
+filed in that repo.
+
 ## Setup
 
 Install dependencies:
@@ -30,9 +34,8 @@ Both the TypeScript compiler and lit-analyzer are configured to be very strict. 
 
 ## Testing
 
-This sample modern-web.dev's
-[@web/test-runner](https://www.npmjs.com/package/@web/test-runner) along with
-Mocha, Chai, and some related helpers for testing. See the
+This sample uses modern-web.dev's
+[@web/test-runner](https://www.npmjs.com/package/@web/test-runner) for testing. See the
 [modern-web.dev testing documentation](https://modern-web.dev/docs/test-runner/overview) for
 more information.
 
@@ -64,7 +67,7 @@ There is a development HTML file located at `/dev/index.html` that you can view 
 
 ## Editing
 
-If you use VS Code, we highly reccomend the [lit-plugin extension](https://marketplace.visualstudio.com/items?itemName=runem.lit-plugin), which enables some extremely useful features for lit-html templates:
+If you use VS Code, we highly recommend the [lit-plugin extension](https://marketplace.visualstudio.com/items?itemName=runem.lit-plugin), which enables some extremely useful features for lit-html templates:
 
 - Syntax highlighting
 - Type-checking
@@ -74,7 +77,7 @@ If you use VS Code, we highly reccomend the [lit-plugin extension](https://marke
 - Linting
 - Quick Fixes
 
-The project is setup to reccomend lit-plugin to VS Code users if they don't already have it installed.
+The project is setup to recommend lit-plugin to VS Code users if they don't already have it installed.
 
 ## Linting
 
@@ -92,11 +95,11 @@ npm run lint
 
 [Prettier](https://prettier.io/) is used for code formatting. It has been pre-configured according to the Lit's style. You can change this in `.prettierrc.json`.
 
-Prettier has not been configured to run when commiting files, but this can be added with Husky and and `pretty-quick`. See the [prettier.io](https://prettier.io/) site for instructions.
+Prettier has not been configured to run when committing files, but this can be added with Husky and `pretty-quick`. See the [prettier.io](https://prettier.io/) site for instructions.
 
 ## Static Site
 
-This project includes a simple website generated with the [eleventy](11ty.dev) static site generator and the templates and pages in `/docs-src`. The site is generated to `/docs` and intended to be checked in so that GitHub pages can serve the site [from `/docs` on the master branch](https://help.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+This project includes a simple website generated with the [eleventy](https://11ty.dev) static site generator and the templates and pages in `/docs-src`. The site is generated to `/docs` and intended to be checked in so that GitHub pages can serve the site [from `/docs` on the master branch](https://help.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
 To enable the site go to the GitHub settings and change the GitHub Pages &quot;Source&quot; setting to &quot;master branch /docs folder&quot;.</p>
 

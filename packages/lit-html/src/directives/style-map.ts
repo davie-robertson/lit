@@ -21,8 +21,14 @@ import {
  * for CSSStyleDeclaration like `backgroundColor`.
  */
 export interface StyleInfo {
-  readonly [name: string]: string | undefined | null;
+  [name: string]: string | number | undefined | null;
 }
+
+const important = 'important';
+// The leading space is important
+const importantFlag = ' !' + important;
+// How many characters to remove from a value, as a negative number
+const flagTrim = 0 - importantFlag.length;
 
 class StyleMapDirective extends Directive {
   _previousStyleProperties?: Set<string>;
@@ -41,7 +47,7 @@ class StyleMapDirective extends Directive {
     }
   }
 
-  render(styleInfo: StyleInfo) {
+  render(styleInfo: Readonly<StyleInfo>) {
     return Object.keys(styleInfo).reduce((style, prop) => {
       const value = styleInfo[prop];
       if (value == null) {
@@ -54,9 +60,11 @@ class StyleMapDirective extends Directive {
       // Exception is any property name containing a dash, including
       // custom properties; we assume these are already dash-cased i.e.:
       //  `--my-button-color` --> `--my-button-color`
-      prop = prop
-        .replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, '-$&')
-        .toLowerCase();
+      prop = prop.includes('-')
+        ? prop
+        : prop
+            .replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, '-$&')
+            .toLowerCase();
       return style + `${prop}:${value};`;
     }, '');
   }
@@ -95,8 +103,16 @@ class StyleMapDirective extends Directive {
       const value = styleInfo[name];
       if (value != null) {
         this._previousStyleProperties.add(name);
-        if (name.includes('-')) {
-          style.setProperty(name, value);
+        const isImportant =
+          typeof value === 'string' && value.endsWith(importantFlag);
+        if (name.includes('-') || isImportant) {
+          style.setProperty(
+            name,
+            isImportant
+              ? (value as string).slice(0, flagTrim)
+              : (value as string),
+            isImportant ? important : ''
+          );
         } else {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (style as any)[name] = value;
@@ -111,18 +127,21 @@ class StyleMapDirective extends Directive {
  * A directive that applies CSS properties to an element.
  *
  * `styleMap` can only be used in the `style` attribute and must be the only
- * expression in the attribute. It takes the property names in the `styleInfo`
- * object and adds the property values as CSS properties. Property names with
- * dashes (`-`) are assumed to be valid CSS property names and set on the
- * element's style object using `setProperty()`. Names without dashes are
- * assumed to be camelCased JavaScript property names and set on the element's
- * style object using property assignment, allowing the style object to
- * translate JavaScript-style names to CSS property names.
+ * expression in the attribute. It takes the property names in the
+ * {@link StyleInfo styleInfo} object and adds the properties to the inline
+ * style of the element.
+ *
+ * Property names with dashes (`-`) are assumed to be valid CSS
+ * property names and set on the element's style object using `setProperty()`.
+ * Names without dashes are assumed to be camelCased JavaScript property names
+ * and set on the element's style object using property assignment, allowing the
+ * style object to translate JavaScript-style names to CSS property names.
  *
  * For example `styleMap({backgroundColor: 'red', 'border-top': '5px', '--size':
  * '0'})` sets the `background-color`, `border-top` and `--size` properties.
  *
  * @param styleInfo
+ * @see {@link https://lit.dev/docs/templates/directives/#stylemap styleMap code samples on Lit.dev}
  */
 export const styleMap = directive(StyleMapDirective);
 

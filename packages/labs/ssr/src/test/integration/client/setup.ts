@@ -7,7 +7,7 @@
 import {assert} from '@open-wc/testing';
 
 import {render} from 'lit';
-import {hydrate} from 'lit/experimental-hydrate.js';
+import {hydrate} from '@lit-labs/ssr-client';
 import {hydrateShadowRoots} from '@webcomponents/template-shadowroot/template-shadowroot.js';
 import {SSRExpectedHTML, SSRTestSuite} from '../tests/ssr-test.js';
 
@@ -170,11 +170,11 @@ const assertHTML = (
   }
 };
 
-const modes = ['vm', 'global'] as const;
+const modes = ['vm', 'vm-shimmed', 'global', 'global-shimmed'] as const;
 export const setupTest = async (
   tests: SSRTestSuite,
   testFile: string,
-  mode: typeof modes[number] = 'vm'
+  mode: (typeof modes)[number] = 'vm'
 ) => {
   suite(`${testFile}: ${mode}`, () => {
     let container: HTMLElement;
@@ -230,6 +230,7 @@ export const setupTest = async (
         expectMutationsOnFirstRender,
         expectMutationsDuringHydration,
         expectMutationsDuringUpgrade,
+        skipPreHydrationAssertHtml,
       } = testSetup;
 
       const testFn =
@@ -243,9 +244,7 @@ export const setupTest = async (
 
       testFn(testName, async () => {
         // Get the SSR result from the server.
-        const response = await fetch(
-          `http://localhost:9090/${mode}/${testFile}/${testName}`
-        );
+        const response = await fetch(`/render/${mode}/${testFile}/${testName}`);
         container.innerHTML = await response.text();
 
         // For element tests, hydrate shadowRoots
@@ -259,7 +258,9 @@ export const setupTest = async (
         // The first expectation args are used in the server render. Check the DOM
         // pre-hydration to make sure they're correct. The DOM is changed again
         // against the first expectation after hydration in the loop below.
-        assertHTML(container, expectations[0].html);
+        if (!skipPreHydrationAssertHtml) {
+          assertHTML(container, expectations[0].html);
+        }
         const stableNodes = stableSelectors.map((selector) =>
           container.querySelector(selector)
         );

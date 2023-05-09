@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.1.3
+
+### Patch Changes
+
+- [#3116](https://github.com/lit/lit/pull/3116) [`7d185b4e`](https://github.com/lit/lit/commit/7d185b4e882aeca70c7b750d8295d0da34a09cd8) - Upgraded TypeScript version to ~4.7.4
+
+- [#3136](https://github.com/lit/lit/pull/3136) [`afff4c17`](https://github.com/lit/lit/commit/afff4c174f131b6461be1ac86e2ceb4201030a8a) - Upgrade ts-clone-node dependency
+
+## 1.1.2
+
+### Patch Changes
+
+- [#3092](https://github.com/lit/lit/pull/3092) [`0c9ee0ec`](https://github.com/lit/lit/commit/0c9ee0ec87b831513f04bdd37e9ed434a134f06f) - Dependencies pinned due to breaking changes.
+
+## 1.1.1
+
+### Patch Changes
+
+- [#2780](https://github.com/lit/lit/pull/2780) [`0f3a87b8`](https://github.com/lit/lit/commit/0f3a87b83ccf32a997208ca8328a8a3fbbafe955) - Fix reactive prop support for getters
+
+## 1.1.0
+
+### Minor Changes
+
+- [#2327](https://github.com/lit/lit/pull/2327) [`49ecf623`](https://github.com/lit/lit/commit/49ecf6239033e9578184d46116e6b89676d091db) - Add `queryAssignedElements` decorator for a declarative API that calls `HTMLSlotElement.assignedElements()` on a specified slot. `selector` option allows filtering returned elements with a CSS selector.
+
+### Patch Changes
+
+- [#2338](https://github.com/lit/lit/pull/2338) [`26e3fb7b`](https://github.com/lit/lit/commit/26e3fb7ba1d3ef778a9862ff73374802b4b4eb2e) - Deprecate `@queryAssignedNodes` API in preference for the new options object API which
+  mirrors the `@queryAssignedElements` API. Update the documentation for both
+  `@queryAssignedNodes` and `@queryAssignedElements` to better document the expected
+  return type annotation.
+
 ## 1.0.2
 
 ### Patch Changes

@@ -16,10 +16,33 @@ import {decorateProperty} from './base.js';
 import type {ReactiveElement} from '../reactive-element.js';
 import type {QueryAssignedNodesOptions} from './query-assigned-nodes.js';
 
+const NODE_MODE = false;
+const global = NODE_MODE ? globalThis : window;
+
+/**
+ * A tiny module scoped polyfill for HTMLSlotElement.assignedElements.
+ */
+const slotAssignedElements =
+  global.HTMLSlotElement?.prototype.assignedElements != null
+    ? (slot: HTMLSlotElement, opts?: AssignedNodesOptions) =>
+        slot.assignedElements(opts)
+    : (slot: HTMLSlotElement, opts?: AssignedNodesOptions) =>
+        slot
+          .assignedNodes(opts)
+          .filter(
+            (node): node is Element => node.nodeType === Node.ELEMENT_NODE
+          );
+
+/**
+ * Options for the {@linkcode queryAssignedElements} decorator. Extends the
+ * options that can be passed into
+ * [HTMLSlotElement.assignedElements](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/assignedElements).
+ */
 export interface QueryAssignedElementsOptions
   extends QueryAssignedNodesOptions {
   /**
-   * CSS selector used to filter the elements returned.
+   * CSS selector used to filter the elements returned. For example, a selector
+   * of `".item"` will only include elements with the `item` class.
    */
   selector?: string;
 }
@@ -28,7 +51,9 @@ export interface QueryAssignedElementsOptions
  * A property decorator that converts a class property into a getter that
  * returns the `assignedElements` of the given `slot`. Provides a declarative
  * way to use
- * [`slot.assignedElements`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/assignedElements).
+ * [`HTMLSlotElement.assignedElements`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/assignedElements).
+ *
+ * Can be passed an optional {@linkcode QueryAssignedElementsOptions} object.
  *
  * Example usage:
  * ```ts
@@ -49,15 +74,6 @@ export interface QueryAssignedElementsOptions
  *
  * Note, the type of this property should be annotated as `Array<HTMLElement>`.
  *
- * @param options Object that sets options for nodes to be returned. See
- *     [MDN parameters section](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/assignedElements#parameters)
- *     for available options. Also accepts two more optional properties,
- *     `slot` and `selector`.
- * @param options.slot Name of the slot. Undefined or empty string for the
- *     default slot.
- * @param options.selector Element results are filtered such that they match the
- *     given CSS selector.
- *
  * @category Decorator
  */
 export function queryAssignedElements(options?: QueryAssignedElementsOptions) {
@@ -68,7 +84,8 @@ export function queryAssignedElements(options?: QueryAssignedElementsOptions) {
         const slotSelector = `slot${slot ? `[name=${slot}]` : ':not([name])'}`;
         const slotEl =
           this.renderRoot?.querySelector<HTMLSlotElement>(slotSelector);
-        const elements = slotEl?.assignedElements(options) ?? [];
+        const elements =
+          slotEl != null ? slotAssignedElements(slotEl, options) : [];
         if (selector) {
           return elements.filter((node) => node.matches(selector));
         }

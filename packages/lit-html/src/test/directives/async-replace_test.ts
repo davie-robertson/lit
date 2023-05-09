@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import {asyncReplace} from '../../directives/async-replace.js';
-import {render, html, nothing} from '../../lit-html.js';
+import {asyncReplace} from 'lit-html/directives/async-replace.js';
+import {render, html, nothing} from 'lit-html';
 import {TestAsyncIterable} from './test-async-iterable.js';
-import {stripExpressionMarkers} from '../test-utils/strip-markers.js';
+import {stripExpressionMarkers} from '@lit-labs/testing';
 import {assert} from '@esm-bundle/chai';
 import {memorySuite} from '../test-utils/memory.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-// Set Symbol.asyncIterator on browsers without it
-if (typeof Symbol !== undefined && Symbol.asyncIterator === undefined) {
-  Object.defineProperty(Symbol, 'Symbol.asyncIterator', {value: Symbol()});
-}
 
 const nextFrame = () =>
   new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -230,7 +225,7 @@ suite('asyncReplace', () => {
   });
 
   suite('disconnection', () => {
-    test('does not render when iterable resolves while while disconnected', async () => {
+    test('does not render when iterable resolves while disconnected', async () => {
       const component = (value: any) => html`<p>${asyncReplace(value)}</p>`;
       const part = render(component(iterable), container);
       await iterable.push('1');

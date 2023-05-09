@@ -1,5 +1,150 @@
 # Change Log
 
+## 1.6.1
+
+### Patch Changes
+
+- [#3561](https://github.com/lit/lit/pull/3561) [`e5c254e9`](https://github.com/lit/lit/commit/e5c254e96cb5d0f770ec616332e231559325c5c5) - Fix built-in shimming of `HTMLElement` for Node build of `reactive-element` to respect existing `HTMLElement` in global
+
+## 1.6.0
+
+### Minor Changes
+
+- [#3522](https://github.com/lit/lit/pull/3522) [`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8) - When running in Node, Lit now automatically includes minimal DOM shims which are
+  sufficient for most SSR (Server Side Rendering) use-cases, removing the need to
+  import the global DOM shim from `@lit-labs/ssr`.
+
+  The new `@lit-labs/ssr-dom-shim` package has been introduced, which exports an `HTMLElement`, `CustomElementRegistry`, and default `customElements` singleton.
+
+  The existing `@lit-labs/ssr` global DOM shim can still be used, and is compatible with the new package, because `@lit-labs/ssr` imports from `@lit-labs/ssr-dom-shim`. Importing the global DOM shim adds more APIs to the global object, such as a global `HTMLElement`, `TreeWalker`, `fetch`, and other APIs. It is recommended that users try to remove usage of the `@lit-labs/ssr` DOM shim, and instead rely on the more minimal, automatic shimming that `@lit/reactive-element` now provides automatically.
+
+### Patch Changes
+
+- Updated dependencies [[`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8)]:
+  - @lit-labs/ssr-dom-shim@1.0.0
+
+## 1.5.0
+
+### Minor Changes
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - `lit-html` and `reactive-element` now include development Node builds with unminified code and dev warnings.
+
+## 1.4.2
+
+### Patch Changes
+
+- [#3374](https://github.com/lit/lit/pull/3374) [`bb098950`](https://github.com/lit/lit/commit/bb0989507f73f1e6d484199e3767eed39ebbaf22) - Initializers added to subclasses are no longer improperly added to superclass.
+
+## 1.4.1
+
+### Patch Changes
+
+- [#3222](https://github.com/lit/lit/pull/3222) [`486739ec`](https://github.com/lit/lit/commit/486739ec23d70ef9ec93fb7249c2291181a8343b) - Fix `CSSStyleSheet is not defined` error that would occur when importing a Lit component in Node when both static `styles` and the `@property` decorator were used.
+
+## 1.4.0
+
+### Minor Changes
+
+- [#3156](https://github.com/lit/lit/pull/3156) [`ae6f6808`](https://github.com/lit/lit/commit/ae6f6808f539254b72ec7efcff34b812173abe64) - Lit and its underlying libraries can now be imported directly from Node without crashing, without the need to load the @lit-labs/ssr dom-shim library. Note that actually rendering from a Node context still requires the @lit-labs/ssr dom-shim, and the appropriate integration between @lit-labs/ssr and your framework/tool.
+
+### Patch Changes
+
+- [#3120](https://github.com/lit/lit/pull/3120) [`6361a4b4`](https://github.com/lit/lit/commit/6361a4b4a589465cf6836c8454ed8ca4521d7b4d) - Bind `this` to custom attribute converter methods
+
+## 1.3.4
+
+### Patch Changes
+
+- [#3132](https://github.com/lit/lit/pull/3132) [`2fe2053f`](https://github.com/lit/lit/commit/2fe2053fe04e7226e5fa4e8b730e91a62a547b27) - Added "types" entry to package exports. This tells newer versions of TypeScript where to look for typings for each module.
+
+## 1.3.3
+
+### Patch Changes
+
+- [#2978](https://github.com/lit/lit/pull/2978) [`634d4560`](https://github.com/lit/lit/commit/634d45601b1d13be6d21fce725ece6abb9b3ee71) - Changed the caching behavior of the css`` template literal tag so that same-text styles do not share a CSSStyleSheet. Note that this may be a breaking change in some very unusual scenarios on Chromium and Firefox > 101 only.
+
+## 1.3.2
+
+### Patch Changes
+
+- [#2688](https://github.com/lit/lit/pull/2688) [`ef178ef6`](https://github.com/lit/lit/commit/ef178ef620c1deffecae391433e94bd64c72ac44) - Add explicit types to the jsdoc code samples for `query`, `queryAll`, and `queryAsync`.
+
+## 1.3.1
+
+### Patch Changes
+
+- [#2635](https://github.com/lit/lit/pull/2635) [`ae358703`](https://github.com/lit/lit/commit/ae3587038873ffcc4934fd008a0b45db4711561e) - Make the event debug logger lazier, doing even less work (with no side effects) even in dev mode unless the page has opted in.
+
+## 1.3.0
+
+### Minor Changes
+
+- [#2401](https://github.com/lit/lit/pull/2401) [`2c9d0008`](https://github.com/lit/lit/commit/2c9d00082a416457ee02107013dd4925bf589628) - Added a devlog events system that may be used for debugging and visualizing Lit's internals.
+
+## 1.2.3
+
+### Patch Changes
+
+- [#2518](https://github.com/lit/lit/pull/2518) [`bbbf21d4`](https://github.com/lit/lit/commit/bbbf21d4f7b22708d834098abb81a0743719a4df) - Fix breaking change in the PropertyValues type. Make PropertyValues<any> compatible with Map<string, string> and other Map types.
+
+- [#2526](https://github.com/lit/lit/pull/2526) [`a50d188a`](https://github.com/lit/lit/commit/a50d188aac233bbd3f82bb17ce98abf1e60fc4cc) - Export PropertyValueMap such that JavaScript generated by Google Closure Compiler can reference this type. Do not directly import the `PropertyValueMap` interface.
+
+## 1.2.2
+
+### Patch Changes
+
+- [#2482](https://github.com/lit/lit/pull/2482) [`6ea3d6c4`](https://github.com/lit/lit/commit/6ea3d6c4b85664be96cdb5f5bd62c6e6263aeb28) - Update the definition of the PropertyValues type to give better types to `.get(k)`. `.get(k)` is now defined to return the correct type when using `PropertyValues<this>` and a parameter that's a key of the element class.
+
+- [#2464](https://github.com/lit/lit/pull/2464) [`df4e1a46`](https://github.com/lit/lit/commit/df4e1a46751ec6f6f75ae378aff4b693ba4d3a9d) - Fix type signature in queryAssignedNodes JSDoc code example.
+
+- [#2457](https://github.com/lit/lit/pull/2457) [`48d69184`](https://github.com/lit/lit/commit/48d69184e6b975f2c707214d7cf5934e5dcc2cf0) - Add JSDoc to the `willUpdate` lifecycle callback. Expand the docs for `firstUpdated`, and `attributeChangedCallback`. Minor code sample fixes.
+
+## 1.2.1
+
+### Patch Changes
+
+- [#2370](https://github.com/lit/lit/pull/2370) [`7453e365`](https://github.com/lit/lit/commit/7453e365000e6a289c139cf7e175a4742296333d) - Replace square bracket links with the `linkcode` JSDoc tag.
+  Editors will create a jump to definition hyperlink for the linkcode tag if the identifier is in scope.
+
+- [#2410](https://github.com/lit/lit/pull/2410) [`b9a6962b`](https://github.com/lit/lit/commit/b9a6962b84c841eaabd5c4cbf8687ff34dbfe511) - Correct the link path of CONTRIBUTING.md in README.md files
+
+## 1.2.0
+
+### Minor Changes
+
+- [#1963](https://github.com/lit/lit/pull/1963) [`db3845a8`](https://github.com/lit/lit/commit/db3845a8781c4492d3b1dbe3ef5298ec2d13be69) - Make static `getPropertyOptions` method public
+
+## 1.1.2
+
+### Patch Changes
+
+- [#2392](https://github.com/lit/lit/pull/2392) [`dc3301ce`](https://github.com/lit/lit/commit/dc3301ce5f5bb0ffb77f17f638d2ee56bf7aaff5) - Fix `@queryAssignedElements` decorator so it is compatible with legacy browsers.
+  Uses `HTMLSlotElement.assignedElements` if available with a graceful fallback
+  on `HTMLSlotElement.assignedNodes` which is supported by polyfills.
+
+## 1.1.1
+
+### Patch Changes
+
+- [#2384](https://github.com/lit/lit/pull/2384) [`39b8db85`](https://github.com/lit/lit/commit/39b8db85ef8d2264a86ff6ff6559ea06b391f08f) - Fix missing decorators/query-assigned-elements.js file
+
+## 1.1.0
+
+### Minor Changes
+
+- [#2327](https://github.com/lit/lit/pull/2327) [`49ecf623`](https://github.com/lit/lit/commit/49ecf6239033e9578184d46116e6b89676d091db) - Add `queryAssignedElements` decorator for a declarative API that calls `HTMLSlotElement.assignedElements()` on a specified slot. `selector` option allows filtering returned elements with a CSS selector.
+
+### Patch Changes
+
+- [#2360](https://github.com/lit/lit/pull/2360) [`08e7fc56`](https://github.com/lit/lit/commit/08e7fc566894d1916dc768c0843fce962ca4d6d4) - Update `@queryAssignedNodes` and `@queryAssignedElements` documentation for better lit.dev API generation.
+
+* [#2267](https://github.com/lit/lit/pull/2267) [`eb5c5d2b`](https://github.com/lit/lit/commit/eb5c5d2b2159dcd8b2321fa9a221b8d56d127a11) - Make `willUpdate` lifecycle hook protected
+
+- [#2338](https://github.com/lit/lit/pull/2338) [`26e3fb7b`](https://github.com/lit/lit/commit/26e3fb7ba1d3ef778a9862ff73374802b4b4eb2e) - Deprecate `@queryAssignedNodes` API in preference for the new options object API which
+  mirrors the `@queryAssignedElements` API. Update the documentation for both
+  `@queryAssignedNodes` and `@queryAssignedElements` to better document the expected
+  return type annotation.
+
 ## 1.0.2
 
 ### Patch Changes

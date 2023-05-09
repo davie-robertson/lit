@@ -6,7 +6,7 @@
 
 /**
  * Use this module if you want to create your own base class extending
- * [[ReactiveElement]].
+ * {@link ReactiveElement}.
  * @packageDocumentation
  */
 
@@ -21,11 +21,21 @@ import type {
   ReactiveControllerHost,
 } from './reactive-controller.js';
 
+// In the Node build, this import will be injected by Rollup:
+// import {HTMLElement, customElements} from '@lit-labs/ssr-dom-shim';
+
 export * from './css-tag.js';
 export type {
   ReactiveController,
   ReactiveControllerHost,
 } from './reactive-controller.js';
+
+const NODE_MODE = false;
+const global = NODE_MODE ? globalThis : window;
+
+if (NODE_MODE) {
+  global.customElements ??= customElements;
+}
 
 const DEV_MODE = true;
 
@@ -38,7 +48,7 @@ let requestUpdateThenable: (name: string) => {
 
 let issueWarning: (code: string, warning: string) => void;
 
-const trustedTypes = (window as unknown as {trustedTypes?: {emptyScript: ''}})
+const trustedTypes = (global as unknown as {trustedTypes?: {emptyScript: ''}})
   .trustedTypes;
 
 // Temporary workaround for https://crbug.com/993268
@@ -50,14 +60,14 @@ const emptyStringForBooleanAttribute = trustedTypes
   : '';
 
 const polyfillSupport = DEV_MODE
-  ? window.reactiveElementPolyfillSupportDevMode
-  : window.reactiveElementPolyfillSupport;
+  ? global.reactiveElementPolyfillSupportDevMode
+  : global.reactiveElementPolyfillSupport;
 
 if (DEV_MODE) {
   // Ensure warnings are issued only 1x, even if multiple versions of Lit
   // are loaded.
-  const issuedWarnings: Set<string | undefined> =
-    (globalThis.litIssuedWarnings ??= new Set());
+  const issuedWarnings: Set<string | undefined> = (global.litIssuedWarnings ??=
+    new Set());
 
   // Issue a warning, if we haven't already.
   issueWarning = (code: string, warning: string) => {
@@ -74,7 +84,7 @@ if (DEV_MODE) {
   );
 
   // Issue polyfill support warning.
-  if (window.ShadyDOM?.inUse && polyfillSupport === undefined) {
+  if (global.ShadyDOM?.inUse && polyfillSupport === undefined) {
     issueWarning(
       'polyfill-support-missing',
       `Shadow DOM is being polyfilled via \`ShadyDOM\` but ` +
@@ -98,6 +108,59 @@ if (DEV_MODE) {
     },
   });
 }
+
+/**
+ * Contains types that are part of the unstable debug API.
+ *
+ * Everything in this API is not stable and may change or be removed in the future,
+ * even on patch releases.
+ */
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace ReactiveUnstable {
+  /**
+   * When Lit is running in dev mode and `window.emitLitDebugLogEvents` is true,
+   * we will emit 'lit-debug' events to window, with live details about the update and render
+   * lifecycle. These can be useful for writing debug tooling and visualizations.
+   *
+   * Please be aware that running with window.emitLitDebugLogEvents has performance overhead,
+   * making certain operations that are normally very cheap (like a no-op render) much slower,
+   * because we must copy data and dispatch events.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  export namespace DebugLog {
+    export type Entry = Update;
+    export interface Update {
+      kind: 'update';
+    }
+  }
+}
+
+interface DebugLoggingWindow {
+  // Even in dev mode, we generally don't want to emit these events, as that's
+  // another level of cost, so only emit them when DEV_MODE is true _and_ when
+  // window.emitLitDebugEvents is true.
+  emitLitDebugLogEvents?: boolean;
+}
+
+/**
+ * Useful for visualizing and logging insights into what the Lit template system is doing.
+ *
+ * Compiled out of prod mode builds.
+ */
+const debugLogEvent = DEV_MODE
+  ? (event: ReactiveUnstable.DebugLog.Entry) => {
+      const shouldEmit = (global as unknown as DebugLoggingWindow)
+        .emitLitDebugLogEvents;
+      if (!shouldEmit) {
+        return;
+      }
+      global.dispatchEvent(
+        new CustomEvent<ReactiveUnstable.DebugLog.Entry>('lit-debug', {
+          detail: event,
+        })
+      );
+    }
+  : undefined;
 
 /*
  * When using Closure Compiler, JSCompiler_renameProperty(property, object) is
@@ -219,13 +282,38 @@ type PropertyDeclarationMap = Map<PropertyKey, PropertyDeclaration>;
 type AttributeMap = Map<string, PropertyKey>;
 
 /**
- * Map of changed properties with old values. Takes an optional generic
- * interface corresponding to the declared element properties.
+ * A Map of property keys to values.
+ *
+ * Takes an optional type parameter T, which when specified as a non-any,
+ * non-unknown type, will make the Map more strongly-typed, associating the map
+ * keys with their corresponding value type on T.
+ *
+ * Use `PropertyValues<this>` when overriding ReactiveElement.update() and
+ * other lifecycle methods in order to get stronger type-checking on keys
+ * and values.
  */
+// This type is conditional so that if the parameter T is not specified, or
+// is `any`, the type will include `Map<PropertyKey, unknown>`. Since T is not
+// given in the uses of PropertyValues in this file, all uses here fallback to
+// meaning `Map<PropertyKey, unknown>`, but if a developer uses
+// `PropertyValues<this>` (or any other value for T) they will get a
+// strongly-typed Map type.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type PropertyValues<T = any> = keyof T extends PropertyKey
-  ? Map<keyof T, unknown>
-  : never;
+export type PropertyValues<T = any> = T extends object
+  ? PropertyValueMap<T>
+  : Map<PropertyKey, unknown>;
+
+/**
+ * Do not use, instead prefer {@linkcode PropertyValues}.
+ */
+// This type must be exported such that JavaScript generated by the Google
+// Closure Compiler can import a type reference.
+export interface PropertyValueMap<T> extends Map<PropertyKey, unknown> {
+  get<K extends keyof T>(k: K): T[K];
+  set<K extends keyof T>(key: K, value: T[K]): this;
+  has<K extends keyof T>(k: K): boolean;
+  delete<K extends keyof T>(k: K): boolean;
+}
 
 export const defaultConverter: ComplexAttributeConverter = {
   toAttribute(value: unknown, type?: unknown): unknown {
@@ -312,6 +400,14 @@ export type Initializer = (element: ReactiveElement) => void;
  * @noInheritDoc
  */
 export abstract class ReactiveElement
+  // In the Node build, this `extends` clause will be substituted with
+  // `(globalThis.HTMLElement ?? HTMLElement)`.
+  //
+  // This way, we will first prefer any global `HTMLElement` polyfill that the
+  // user has assigned, and then fall back to the `HTMLElement` shim which has
+  // been imported (see note at the top of this file about how this import is
+  // generated by Rollup). Note that the `HTMLElement` variable has been
+  // shadowed by this import, so it no longer refers to the global.
   extends HTMLElement
   implements ReactiveControllerHost
 {
@@ -334,10 +430,10 @@ export abstract class ReactiveElement
    *
    * ```ts
    * // Enable for all ReactiveElement subclasses
-   * ReactiveElement.enableWarning.?('migration');
+   * ReactiveElement.enableWarning?.('migration');
    *
    * // Enable for only MyElement and subclasses
-   * MyElement.enableWarning.?('migration');
+   * MyElement.enableWarning?.('migration');
    * ```
    *
    * @nocollapse
@@ -353,10 +449,10 @@ export abstract class ReactiveElement
    *
    * ```ts
    * // Disable for all ReactiveElement subclasses
-   * ReactiveElement.disableWarning.?('migration');
+   * ReactiveElement.disableWarning?.('migration');
    *
    * // Disable for only MyElement and subclasses
-   * MyElement.disableWarning.?('migration');
+   * MyElement.disableWarning?.('migration');
    * ```
    *
    * @nocollapse
@@ -398,8 +494,8 @@ export abstract class ReactiveElement
    * @nocollapse
    */
   static addInitializer(initializer: Initializer) {
-    this._initializers ??= [];
-    this._initializers.push(initializer);
+    this.finalize();
+    (this._initializers ??= []).push(initializer);
   }
 
   static _initializers?: Initializer[];
@@ -468,7 +564,7 @@ export abstract class ReactiveElement
 
   /**
    * Array of styles to apply to the element. The styles should be defined
-   * using the [[`css`]] tag function, via constructible stylesheets, or
+   * using the {@linkcode css} tag function, via constructible stylesheets, or
    * imported from native CSS module scripts.
    *
    * Note on Content Security Policy:
@@ -476,10 +572,10 @@ export abstract class ReactiveElement
    * Element styles are implemented with `<style>` tags when the browser doesn't
    * support adopted StyleSheets. To use such `<style>` tags with the style-src
    * CSP directive, the style-src value must either include 'unsafe-inline' or
-   * 'nonce-<base64-value>' with <base64-value> replaced be a server-generated
+   * `nonce-<base64-value>` with `<base64-value>` replaced be a server-generated
    * nonce.
    *
-   * To provide a nonce to use on generated <style> elements, set
+   * To provide a nonce to use on generated `<style>` elements, set
    * `window.litNonce` to a server-generated nonce in your page's HTML, before
    * loading application code:
    *
@@ -524,10 +620,10 @@ export abstract class ReactiveElement
 
   /**
    * Creates a property accessor on the element prototype if one does not exist
-   * and stores a `PropertyDeclaration` for the property with the given options.
-   * The property setter calls the property's `hasChanged` property option
-   * or uses a strict identity check to determine whether or not to request
-   * an update.
+   * and stores a {@linkcode PropertyDeclaration} for the property with the
+   * given options. The property setter calls the property's `hasChanged`
+   * property option or uses a strict identity check to determine whether or not
+   * to request an update.
    *
    * This method may be overridden to customize properties; however,
    * when doing so, it's important to call `super.createProperty` to ensure
@@ -645,13 +741,14 @@ export abstract class ReactiveElement
    * `createProperty(...)`.
    *
    * Note, this method should be considered "final" and not overridden. To
-   * customize the options for a given property, override [[`createProperty`]].
+   * customize the options for a given property, override
+   * {@linkcode createProperty}.
    *
    * @nocollapse
    * @final
    * @category properties
    */
-  protected static getPropertyOptions(name: PropertyKey) {
+  static getPropertyOptions(name: PropertyKey) {
     return this.elementProperties.get(name) || defaultPropertyDeclaration;
   }
 
@@ -669,6 +766,12 @@ export abstract class ReactiveElement
     // finalize any superclasses
     const superCtor = Object.getPrototypeOf(this) as typeof ReactiveElement;
     superCtor.finalize();
+    // Create own set of initializers for this class if any exist on the
+    // superclass and copy them down. Note, for a small perf boost, avoid
+    // creating initializers unless needed.
+    if (superCtor._initializers !== undefined) {
+      this._initializers = [...superCtor._initializers];
+    }
     this.elementProperties = new Map(superCtor.elementProperties);
     // initialize Map populated in observedAttributes
     this.__attributeToPropertyMap = new Map();
@@ -963,6 +1066,14 @@ export abstract class ReactiveElement
 
   /**
    * Synchronizes property values when attributes change.
+   *
+   * Specifically, when an attribute is set, the corresponding property is set.
+   * You should rarely need to implement this callback. If this method is
+   * overridden, `super.attributeChangedCallback(name, _old, value)` must be
+   * called.
+   *
+   * See [using the lifecycle callbacks](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements#using_the_lifecycle_callbacks)
+   * on MDN for more information about the `attributeChangedCallback`.
    * @category attributes
    */
   attributeChangedCallback(
@@ -982,10 +1093,12 @@ export abstract class ReactiveElement
       this.constructor as typeof ReactiveElement
     ).__attributeNameForProperty(name, options);
     if (attr !== undefined && options.reflect === true) {
-      const toAttribute =
-        (options.converter as ComplexAttributeConverter)?.toAttribute ??
-        defaultConverter.toAttribute;
-      const attrValue = toAttribute!(value, options.type);
+      const converter =
+        (options.converter as ComplexAttributeConverter)?.toAttribute !==
+        undefined
+          ? (options.converter as ComplexAttributeConverter)
+          : defaultConverter;
+      const attrValue = converter.toAttribute!(value, options.type);
       if (
         DEV_MODE &&
         (this.constructor as typeof ReactiveElement).enabledWarnings!.indexOf(
@@ -1030,17 +1143,19 @@ export abstract class ReactiveElement
     // if it was just set because the attribute changed.
     if (propName !== undefined && this.__reflectingProperty !== propName) {
       const options = ctor.getPropertyOptions(propName);
-      const converter = options.converter;
-      const fromAttribute =
-        (converter as ComplexAttributeConverter)?.fromAttribute ??
-        (typeof converter === 'function'
-          ? (converter as (value: string | null, type?: unknown) => unknown)
-          : null) ??
-        defaultConverter.fromAttribute;
+      const converter =
+        typeof options.converter === 'function'
+          ? {fromAttribute: options.converter}
+          : options.converter?.fromAttribute !== undefined
+          ? options.converter
+          : defaultConverter;
       // mark state reflecting
       this.__reflectingProperty = propName;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this[propName as keyof this] = fromAttribute!(value, options.type) as any;
+      this[propName as keyof this] = converter.fromAttribute!(
+        value,
+        options.type
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ) as any;
       // mark state not reflecting
       this.__reflectingProperty = null;
     }
@@ -1172,6 +1287,7 @@ export abstract class ReactiveElement
     if (!this.isUpdatePending) {
       return;
     }
+    debugLogEvent?.({kind: 'update'});
     // create renderRoot before first update.
     if (!this.hasUpdated) {
       // Produce warning if any class properties are shadowed by class fields
@@ -1231,6 +1347,24 @@ export abstract class ReactiveElement
   }
 
   /**
+   * Invoked before `update()` to compute values needed during the update.
+   *
+   * Implement `willUpdate` to compute property values that depend on other
+   * properties and are used in the rest of the update process.
+   *
+   * ```ts
+   * willUpdate(changedProperties) {
+   *   // only need to check changed properties for an expensive computation.
+   *   if (changedProperties.has('firstName') || changedProperties.has('lastName')) {
+   *     this.sha = computeSHA(`${this.firstName} ${this.lastName}`);
+   *   }
+   * }
+   *
+   * render() {
+   *   return html`SHA: ${this.sha}`;
+   * }
+   * ```
+   *
    * @category updates
    */
   protected willUpdate(_changedProperties: PropertyValues): void {}
@@ -1363,6 +1497,12 @@ export abstract class ReactiveElement
    * Invoked when the element is first updated. Implement to perform one time
    * work on the element after update.
    *
+   * ```ts
+   * firstUpdated() {
+   *   this.renderRoot.getElementById('my-text-area').focus();
+   * }
+   * ```
+   *
    * Setting properties inside this method will trigger the element to update
    * again after this update cycle completes.
    *
@@ -1409,8 +1549,8 @@ if (DEV_MODE) {
 
 // IMPORTANT: do not change the property name or the assignment expression.
 // This line will be used in regexes to search for ReactiveElement usage.
-(globalThis.reactiveElementVersions ??= []).push('1.0.2');
-if (DEV_MODE && globalThis.reactiveElementVersions.length > 1) {
+(global.reactiveElementVersions ??= []).push('1.6.1');
+if (DEV_MODE && global.reactiveElementVersions.length > 1) {
   issueWarning!(
     'multiple-versions',
     `Multiple versions of Lit loaded. Loading multiple versions ` +

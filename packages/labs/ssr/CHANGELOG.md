@@ -1,5 +1,211 @@
 # Change Log
 
+## 3.1.2
+
+### Patch Changes
+
+- [#3849](https://github.com/lit/lit/pull/3849) [`02d6a35a`](https://github.com/lit/lit/commit/02d6a35ab75285905b28a5b29e8a7740d3cb5e3f) - Add "module" to condition names to resolve for module loader
+
+## 3.1.1
+
+### Patch Changes
+
+- [#3720](https://github.com/lit/lit/pull/3720) [`575fb578`](https://github.com/lit/lit/commit/575fb578473031859b59b9ed98634ba091b389f7) - Use hydration modules from `@lit-labs/ssr-client`
+
+- Updated dependencies [[`575fb578`](https://github.com/lit/lit/commit/575fb578473031859b59b9ed98634ba091b389f7)]:
+  - @lit-labs/ssr-client@1.1.0
+
+## 3.1.0
+
+### Minor Changes
+
+- [#3599](https://github.com/lit/lit/pull/3599) [`ca74ff6e`](https://github.com/lit/lit/commit/ca74ff6eda710b929ca7aaf759a98cdfa350cc0d) - Forwards compatibility for Declarative Shadow DOM's shadowrootmode rename
+
+- [#3677](https://github.com/lit/lit/pull/3677) [`b95c86e5`](https://github.com/lit/lit/commit/b95c86e5ec0e2f6de63a23409b9ec489edb61b86) - Reflect ARIA attributes onto server rendered Lit elements with attached internals during SSR and remove them upon hydration.
+
+- [#3667](https://github.com/lit/lit/pull/3667) [`e00f6f52`](https://github.com/lit/lit/commit/e00f6f52199d5dbc08d4c15f62380422e77cde7f) - Improved how nodes with attribute/property/event/element bindings are rendered in SSR, to avoid adding comments inside of "raw text elements" like `<textarea>`. Fixes #3663.
+
+  Note: `@lit-labs/ssr` and `lit-html` must be updated together.
+
+### Patch Changes
+
+- [#3712](https://github.com/lit/lit/pull/3712) [`f2eb9796`](https://github.com/lit/lit/commit/f2eb97962c7e77373b3b8861ab59639de22da3d0) - Fix a few things in the README
+
+- [#3590](https://github.com/lit/lit/pull/3590) [`1d8a38ed`](https://github.com/lit/lit/commit/1d8a38ed0b962f23813a90c3c6423716c9271d83) - Make FallbackRenderer not emit a shadow root
+
+- [#3584](https://github.com/lit/lit/pull/3584) [`61ec3dab`](https://github.com/lit/lit/commit/61ec3dab761e379c65f9e27946e53137da83fb58) - Remove `abstract` from members of the ElementRendererConstructor type
+
+- Updated dependencies [[`4d698430`](https://github.com/lit/lit/commit/4d698430b38efa49c97b841238b331340af5fef0), [`b95c86e5`](https://github.com/lit/lit/commit/b95c86e5ec0e2f6de63a23409b9ec489edb61b86), [`b95c86e5`](https://github.com/lit/lit/commit/b95c86e5ec0e2f6de63a23409b9ec489edb61b86), [`e00f6f52`](https://github.com/lit/lit/commit/e00f6f52199d5dbc08d4c15f62380422e77cde7f), [`88a40177`](https://github.com/lit/lit/commit/88a40177de9be5d117a21e3da5414bd777872544)]:
+  - lit-html@2.7.0
+  - @lit-labs/ssr-dom-shim@1.1.0
+  - lit@2.7.0
+  - lit-element@3.3.0
+
+## 3.0.1
+
+### Patch Changes
+
+- [#3432](https://github.com/lit/lit/pull/3432) [`805607fb`](https://github.com/lit/lit/commit/805607fb19535f5e2eaa2a27743ed6f1ff6fbb6d) - `LitElementRenderer` now uses `renderValue` from `lib/render-value.js`, removing a circular dependency.
+
+## 3.0.0
+
+### Major Changes
+
+- [#3522](https://github.com/lit/lit/pull/3522) [`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8) - ModuleLoader now provides a default VM global context object which provides basic globals that are available in both Node and browsers.
+
+- [#3522](https://github.com/lit/lit/pull/3522) [`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8) - The SSR dom shim will now throw if a custom element is redefined.
+
+- [#3431](https://github.com/lit/lit/pull/3431) [`ff637f52`](https://github.com/lit/lit/commit/ff637f52a3c2252e37d6ea6ae352c3c0f35a9e87) - The Lit SSR DOM shim no longer defines a global `window` variable. This was removed to improve compatibility with libraries that detect whether they are running in Node vs the browser by checking for the presence of `window`.
+
+  If you have code that runs during SSR which depends on the presence of `window`, you can either replace `window` with `globalThis`, or use `isSsr` to avoid running that code on the server (see https://lit.dev/docs/ssr/authoring/#browser-only-code).
+
+- [#3467](https://github.com/lit/lit/pull/3467) [`c77220e8`](https://github.com/lit/lit/commit/c77220e80bc5b04628776ef8e5828fcde5f8ad16) - Allow SSR renderers to produce asynchronous values. This is a BREAKING change.
+
+  This changes the return type of `render()` and the `ElementRenderer` render methods to be a `RenderResult`, which is an iterable of strings or Promises and nested RenderResults.
+
+  The iterable remains a sync iterable, not an async iterable. This is to support environments that require synchronous renders and because sync iterables are faster than async iterables. Since many server renders will not require async rendering, they should work in sync contexts and shouldn't pay the overhead of an async iterable.
+
+  Including Promises in the sync iterable creates a kind of hybrid sync/async iteration protocol. Consumers of RenderResults must check each value to see if it is a Promise or iterable and wait or recurse as needed.
+
+  This change introduces three new utilities to do this:
+
+  - `collectResult(result: RenderResult): Promise<string>` - an async function that joins a RenderResult into a string. It waits for Promises and recurses into nested iterables.
+  - `collectResultSync(result: RenderResult)` - a sync function that joins a RenderResult into a string. It recurses into nested iterables, but _throws_ when it encounters a Promise.
+  - `RenderResultReadable` - a Node `Readable` stream implementation that provides values from a `RenderResult`. This can be piped into a `Writable` stream, or passed to web server frameworks like Koa.
+
+### Minor Changes
+
+- [#3522](https://github.com/lit/lit/pull/3522) [`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8) - When running in Node, Lit now automatically includes minimal DOM shims which are
+  sufficient for most SSR (Server Side Rendering) use-cases, removing the need to
+  import the global DOM shim from `@lit-labs/ssr`.
+
+  The new `@lit-labs/ssr-dom-shim` package has been introduced, which exports an `HTMLElement`, `CustomElementRegistry`, and default `customElements` singleton.
+
+  The existing `@lit-labs/ssr` global DOM shim can still be used, and is compatible with the new package, because `@lit-labs/ssr` imports from `@lit-labs/ssr-dom-shim`. Importing the global DOM shim adds more APIs to the global object, such as a global `HTMLElement`, `TreeWalker`, `fetch`, and other APIs. It is recommended that users try to remove usage of the `@lit-labs/ssr` DOM shim, and instead rely on the more minimal, automatic shimming that `@lit/reactive-element` now provides automatically.
+
+- [#3522](https://github.com/lit/lit/pull/3522) [`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8) - APIs such as attachShadow, setAttribute have been moved from the HTMLElement class shim to the Element class shim, matching the structure of the real API. This should have no effect in most cases, as HTMLElement inherits from Element.
+
+### Patch Changes
+
+- Updated dependencies [[`72fcf0d7`](https://github.com/lit/lit/commit/72fcf0d70b4f4644e080e9c375a58cf8fc35e9e8)]:
+  - @lit-labs/ssr-dom-shim@1.0.0
+  - @lit/reactive-element@1.6.0
+  - lit-html@2.6.0
+  - lit@2.6.0
+
+## 2.3.0
+
+### Minor Changes
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - `ReactiveElement`'s `shadowRootOptions` are now used to configure declarative shadow roots' properties.
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - Module resolution within SSR now supports package exports (via `package.json`)
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - Add support to SSR for loading of modules from packages with export maps
+
+### Patch Changes
+
+- Updated dependencies [[`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d)]:
+  - lit-html@2.5.0
+  - @lit/reactive-element@1.5.0
+  - lit@2.5.0
+
+## 2.2.3
+
+### Patch Changes
+
+- [#3187](https://github.com/lit/lit/pull/3187) [`84437af6`](https://github.com/lit/lit/commit/84437af6826a5cdb61c383c3034a0e4150e8e50f) - When using `renderModule`, `URL` and `URLSearchParams` are now available in global of the VM module context
+
+- [#3204](https://github.com/lit/lit/pull/3204) [`19d7bd25`](https://github.com/lit/lit/commit/19d7bd255987cfeac2d8dfa9f9d04d2378568535) - Use `url` module to parse file URL to path for Windows compatibility
+
+- Updated dependencies [[`daddeb34`](https://github.com/lit/lit/commit/daddeb346a2f454b25a6a5d1722683197f25fbcd), [`0725fdb4`](https://github.com/lit/lit/commit/0725fdb4dd7d36e3a7154830c41b9af4cf866e52), [`3766ae4c`](https://github.com/lit/lit/commit/3766ae4c35edf794aa30ee2d738c6f63fdda44e5), [`6361a4b4`](https://github.com/lit/lit/commit/6361a4b4a589465cf6836c8454ed8ca4521d7b4d), [`ae6f6808`](https://github.com/lit/lit/commit/ae6f6808f539254b72ec7efcff34b812173abe64)]:
+  - lit-html@2.3.0
+  - lit@2.3.0
+  - @lit/reactive-element@1.4.0
+
+## 2.2.2
+
+### Patch Changes
+
+- [#3138](https://github.com/lit/lit/pull/3138) [`6450e17b`](https://github.com/lit/lit/commit/6450e17b58d1000d0501ad2b427a3248564d0c29) - JS source maps now include the TS source inline
+
+- [#3136](https://github.com/lit/lit/pull/3136) [`afff4c17`](https://github.com/lit/lit/commit/afff4c174f131b6461be1ac86e2ceb4201030a8a) - Upgrade node-fetch version
+
+## 2.2.1
+
+### Patch Changes
+
+- [#3045](https://github.com/lit/lit/pull/3045) [`9a7b6546`](https://github.com/lit/lit/commit/9a7b6546c286a964cafb707812353f33c6f0113c) - Fix behavior of setAttribute when value is not a string to match browsers. It is now cast to a string. Fixes problems such as reflection of type:Number properties on ReactiveElements.
+
+## 2.2.0
+
+### Minor Changes
+
+- [#2940](https://github.com/lit/lit/pull/2940) [`ac356997`](https://github.com/lit/lit/commit/ac356997351874706f8be235559c765861dce67d) - Add option to defer hydration of top level custom elements.
+
+## 2.1.0
+
+### Minor Changes
+
+- [#2662](https://github.com/lit/lit/pull/2662) [`1d51ed8b`](https://github.com/lit/lit/commit/1d51ed8b7eb991e151759f9dbf8643b4ed781457) - Adds HTMLElement.shadowRoot property to dom-shim.
+
+## 2.0.4
+
+### Patch Changes
+
+- [#2580](https://github.com/lit/lit/pull/2580) [`b8ceafb0`](https://github.com/lit/lit/commit/b8ceafb00651b9a4b5021ac5a3d1d960ceb10e6b) - Handle rendering of null and undefined element attribute values
+
+## 2.0.3
+
+### Patch Changes
+
+- [#2510](https://github.com/lit/lit/pull/2510) [`937388e2`](https://github.com/lit/lit/commit/937388e247a26ee201f58be1c4fa536635b2fc5c) - Replace window proxy with reference to globalThis in global DOM shim
+
+## 2.0.2
+
+### Patch Changes
+
+- [#2488](https://github.com/lit/lit/pull/2488) [`28d856e3`](https://github.com/lit/lit/commit/28d856e3d737bf0a9f7930d2349671efdd1c0bbb) - Fix typo in README import statements.
+
+- [#2456](https://github.com/lit/lit/pull/2456) [`0b774e0e`](https://github.com/lit/lit/commit/0b774e0e9e8b42bf28ea6107ebd7062d3c0a36ab) - Fix TypeScript typing issues when using @lit-labs/ssr. Adds a dependency on @types/node for URL, which is part of the public ModuleLoader API. Adds a new VmModule interface for the ModuleLoader API, whose return type was previously completely missing.
+
+- [#2480](https://github.com/lit/lit/pull/2480) [`c9022d53`](https://github.com/lit/lit/commit/c9022d53c62a372af5447f58cafbb2a7866b6d70) - Fix bug which could cause errors resolving lit modules with isolated vm modules.
+
+- [#2406](https://github.com/lit/lit/pull/2406) [`5d77f893`](https://github.com/lit/lit/commit/5d77f893c6debb3fb09f2fb81b99ac2aadefe09c) - [@lit-labs/ssr] Fix typo in ssr readme. Fixes #2381
+
+## 2.0.1
+
+### Patch Changes
+
+- [#2386](https://github.com/lit/lit/pull/2386) [`734d8890`](https://github.com/lit/lit/commit/734d88909eb285d935cb583c016242d634fa2c75) - Unpin SSR's dependency on reactive-element
+
+## 2.0.0
+
+### Major Changes
+
+- [#2288](https://github.com/lit/lit/pull/2288) [`b42f6f0f`](https://github.com/lit/lit/commit/b42f6f0f8b18e7efade96ce32a045374fe10530c) - Refactor the import-module into a class-based ModuleLoader API. Adds a module cache that tracks dependencies between modules.
+
+### Minor Changes
+
+- [#2294](https://github.com/lit/lit/pull/2294) [`dcab56b0`](https://github.com/lit/lit/commit/dcab56b0eeef6e05969c3682d3275a30ddf18d97) - Add customElementRendered callback to RenderInfo so that callers can know what elements were rendered.
+
+### Patch Changes
+
+- [#2346](https://github.com/lit/lit/pull/2346) [`53e64286`](https://github.com/lit/lit/commit/53e642868d2f06429dfd9bb33e89e2baa3b45b64) - Remove dependency on escape-html (which is not an ES module)
+
+* [#2344](https://github.com/lit/lit/pull/2344) [`bc46ddd6`](https://github.com/lit/lit/commit/bc46ddd669047e2ce592a680c14f09b7681132e3) - Fix bug where static attributes did not render for unknown elements
+
+- [#2345](https://github.com/lit/lit/pull/2345) [`4edf4f3b`](https://github.com/lit/lit/commit/4edf4f3b93d41c24a79814c303abc7281449d44b) - Remove unnecessary dependencies: `koa`, `koa-node-resolve`, `koa-static`,
+  `@webcomponents/template-shadowroot`
+
+* [#2334](https://github.com/lit/lit/pull/2334) [`93d8751a`](https://github.com/lit/lit/commit/93d8751a28237521380ddd6b2a3c1294962ba84e) - add tests for reflected properties
+
+* Updated dependencies [[`08e7fc56`](https://github.com/lit/lit/commit/08e7fc566894d1916dc768c0843fce962ca4d6d4), [`fcc2b3d0`](https://github.com/lit/lit/commit/fcc2b3d0054e69e6f76588ea9f440117b6d0deed), [`eb5c5d2b`](https://github.com/lit/lit/commit/eb5c5d2b2159dcd8b2321fa9a221b8d56d127a11), [`49ecf623`](https://github.com/lit/lit/commit/49ecf6239033e9578184d46116e6b89676d091db), [`26e3fb7b`](https://github.com/lit/lit/commit/26e3fb7ba1d3ef778a9862ff73374802b4b4eb2e), [`d319cf5f`](https://github.com/lit/lit/commit/d319cf5fde1c2b70185ee9a6252067ed0edaf2fc), [`1d563e83`](https://github.com/lit/lit/commit/1d563e830c02a2d1a22e1e939f1ace971b1d1ae7), [`221cb0a9`](https://github.com/lit/lit/commit/221cb0a90787631dcc867959de19febd2ebd3fd0)]:
+  - @lit/reactive-element@1.1.0
+  - lit@2.1.0
+  - lit-html@2.1.0
+  - lit-element@3.1.0
+
 ## 1.0.0
 
 ### Patch Changes

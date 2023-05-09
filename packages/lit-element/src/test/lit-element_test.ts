@@ -11,14 +11,14 @@ import {
   ReactiveElement,
   Part,
   nothing,
-} from '../lit-element.js';
+} from 'lit-element';
 import {directive, AsyncDirective} from 'lit-html/async-directive.js';
 import {
   canTestLitElement,
   generateElementName,
   nextFrame,
-  stripExpressionComments,
 } from './test-helpers.js';
+import {stripExpressionComments} from '@lit-labs/testing';
 import {assert} from '@esm-bundle/chai';
 
 import {createRef, ref} from 'lit-html/directives/ref.js';

@@ -1,5 +1,75 @@
 # Change Log
 
+## 2.1.1
+
+### Patch Changes
+
+- [#3847](https://github.com/lit/lit/pull/3847) [`b3625853`](https://github.com/lit/lit/commit/b36258534e6cce799297e837dadbd4bc37ab49fa) - Add a missing await in performTask
+
+## 2.1.0
+
+### Minor Changes
+
+- [#3660](https://github.com/lit/lit/pull/3660) [`65df149f`](https://github.com/lit/lit/commit/65df149f761ff4052beb064386bd59f568a87154) - Fix the change-in-update warning from Tasks by delaying the initial host update
+
+## 2.0.0
+
+### Major Changes
+
+- [#3283](https://github.com/lit/lit/pull/3283) [`a279803d`](https://github.com/lit/lit/commit/a279803d14dd0d0e81d49063587965581bdc759a) - **[Breaking]** Task will no longer reset its `value` or `error` on pending. This allows us to start chaining tasks e.g.
+
+  ```js
+  const a = new Task(
+    this,
+    async ([url]) => await fetch(url),
+    () => [this.url]
+  );
+  const b = new Task(
+    this,
+    async ([value]) => {
+      /* This is not thrashed */
+    },
+    () => [a.value]
+  );
+  ```
+
+### Minor Changes
+
+- [#3287](https://github.com/lit/lit/pull/3287) [`02b0b7b9`](https://github.com/lit/lit/commit/02b0b7b9f99b85de34e56168cf4ccb6955f4c553) - Adds onComplete and onError callbacks
+
+## 1.1.3
+
+### Patch Changes
+
+- [#3131](https://github.com/lit/lit/pull/3131) [`ec87d529`](https://github.com/lit/lit/commit/ec87d5297cba77c4272e89c69d0b1bd0e2ec6823) - Update Task typings to work better with inference and casting args to `as const` by making args a readonly array.
+
+- [#3132](https://github.com/lit/lit/pull/3132) [`2fe2053f`](https://github.com/lit/lit/commit/2fe2053fe04e7226e5fa4e8b730e91a62a547b27) - Added "types" entry to package exports. This tells newer versions of TypeScript where to look for typings for each module.
+
+## 1.1.2
+
+### Patch Changes
+
+- [#2582](https://github.com/lit/lit/pull/2582) [`24cb1568`](https://github.com/lit/lit/commit/24cb156832fe14b0f96d7041c73a35afa893718d) - Fix example code syntax in lit-labs/task README
+
+## 1.1.1
+
+### Patch Changes
+
+- [#2410](https://github.com/lit/lit/pull/2410) [`b9a6962b`](https://github.com/lit/lit/commit/b9a6962b84c841eaabd5c4cbf8687ff34dbfe511) - Correct the link path of CONTRIBUTING.md in README.md files
+
+## 1.1.0
+
+### Minor Changes
+
+- [#2336](https://github.com/lit/lit/pull/2336) [`48394303`](https://github.com/lit/lit/commit/483943034a62bded13eca0c982ff7c93ac6639b6) - Tasks with no arguments now run by default. When a task runs can be customized by passing a `canRun` function.
+
+* [#2336](https://github.com/lit/lit/pull/2336) [`48394303`](https://github.com/lit/lit/commit/483943034a62bded13eca0c982ff7c93ac6639b6) - Tasks now run whenever their arguments change. Disable this by setting `autoRun` to `false`, either on the task config or on the task itself. Tasks can be explicitly run by calling `run` and optionally passing custom args.
+
+### Patch Changes
+
+- Updated dependencies [[`08e7fc56`](https://github.com/lit/lit/commit/08e7fc566894d1916dc768c0843fce962ca4d6d4), [`eb5c5d2b`](https://github.com/lit/lit/commit/eb5c5d2b2159dcd8b2321fa9a221b8d56d127a11), [`49ecf623`](https://github.com/lit/lit/commit/49ecf6239033e9578184d46116e6b89676d091db), [`26e3fb7b`](https://github.com/lit/lit/commit/26e3fb7ba1d3ef778a9862ff73374802b4b4eb2e)]:
+  - @lit/reactive-element@1.1.0
+
 ## 1.0.0
 
 ### Patch Changes
@@ -71,7 +141,7 @@ Changes below were based on the [Keep a Changelog](http://keepachangelog.com/) f
 
 ### Added
 
-- Added an `initialState` sentinal value that task functions can return to reset the task state to INITIAL.
+- Added an `initialState` sentinel value that task functions can return to reset the task state to INITIAL.
 
 <!-- ### Removed -->
 <!-- ### Fixed -->

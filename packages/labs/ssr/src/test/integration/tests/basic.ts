@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import 'lit/experimental-hydrate-support.js';
+import '@lit-labs/ssr-client/lit-element-hydrate-support.js';
 
 import {html, noChange, nothing, Part} from 'lit';
+import {html as staticHtml, literal} from 'lit/static-html.js';
 import {
   directive,
   Directive,
@@ -57,7 +58,7 @@ interface ClickableInput extends HTMLInputElement {
 
 const throwIfRunOnServer = () => {
   if (!(globalThis instanceof window.constructor)) {
-    throw new Error('Upate should not be run on the server');
+    throw new Error('Update should not be run on the server');
   }
 };
 
@@ -1578,6 +1579,97 @@ export const tests: {[name: string]: SSRTest} = {
       },
     ],
     stableSelectors: ['input'],
+  },
+
+  'AttributePart on void element in shadow root': {
+    // Regression test for https://github.com/lit/lit/issues/2946.
+    //
+    // Confirms that we do not crash when hydrating a shadow root containing an
+    // immediate child that is a void element with an attribute binding. This is
+    // an edge case because when the HTML parser encounters a void element, any
+    // children it has, including our <!--lit-node 0--> comments, become
+    // siblings instead of children.
+    registerElements() {
+      class VoidElementHost extends LitElement {
+        @property()
+        maxLen = 64;
+
+        override render() {
+          return html`<input max=${this.maxLen} />`;
+        }
+      }
+      customElements.define('void-element-host', VoidElementHost);
+    },
+    render() {
+      return html`<void-element-host></void-element-host>`;
+    },
+    expectations: [
+      {
+        args: [],
+        html: '<void-element-host></void-element-host>',
+        async check(assert: Chai.Assert, dom: HTMLElement) {
+          const host = dom.querySelector('void-element-host') as LitElement & {
+            maxLen: number;
+          };
+          assert.instanceOf(host, LitElement);
+          assert.equal(host.maxLen, 64);
+
+          await host.updateComplete;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+          const input = host.shadowRoot?.querySelector('input')!;
+          assert.instanceOf(input, HTMLElement);
+          assert.equal(input.getAttribute('max'), '64');
+
+          host.maxLen++;
+          await host.updateComplete;
+          assert.equal(input.getAttribute('max'), '65');
+        },
+      },
+    ],
+    stableSelectors: ['input'],
+  },
+
+  'AttributePart on raw text element in shadow root': {
+    // Regression test for https://github.com/lit/lit/issues/3663.
+    //
+    // Confirms that attribute bindings to raw text elements now
+    // work as expected.
+    registerElements() {
+      class RawElementHost extends LitElement {
+        @property()
+        text = 'hello';
+
+        override render() {
+          return html`<textarea .value=${this.text}></textarea>`;
+        }
+      }
+      customElements.define('raw-element-host', RawElementHost);
+    },
+    render() {
+      return html`<raw-element-host></raw-element-host>`;
+    },
+    expectations: [
+      {
+        args: [],
+        html: '<raw-element-host></raw-element-host>',
+        async check(assert: Chai.Assert, dom: HTMLElement) {
+          const host = dom.querySelector('raw-element-host') as LitElement & {
+            text: string;
+          };
+          assert.instanceOf(host, LitElement);
+          assert.equal(host.text, 'hello');
+
+          await host.updateComplete;
+          const textarea = host.shadowRoot?.querySelector('textarea');
+          assert.equal(textarea?.value, 'hello');
+
+          host.text = 'goodbye';
+          await host.updateComplete;
+          assert.equal(textarea?.value, 'goodbye');
+        },
+      },
+    ],
+    stableSelectors: ['textarea'],
   },
 
   /******************************************************
@@ -4161,6 +4253,28 @@ export const tests: {[name: string]: SSRTest} = {
   },
 
   /******************************************************
+   * Static html tests
+   ******************************************************/
+
+  'Static html': {
+    render(x: unknown) {
+      const tagName = x === 'foo' ? literal`div` : literal`p`;
+      return staticHtml`<${tagName}>${x}</${tagName}>`;
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div>foo</div>',
+      },
+      {
+        args: ['foo2'],
+        html: '<p>foo2</p>',
+      },
+    ],
+    stableSelectors: [],
+  },
+
+  /******************************************************
    * AsyncDirective tests
    ******************************************************/
 
@@ -4327,7 +4441,16 @@ export const tests: {[name: string]: SSRTest} = {
 
   'Custom element with no renderer: Attributes': () => {
     return {
-      registerElements() {
+      async registerElements() {
+        // Extending LitElement always works, because we automatically shim
+        // HTMLElement in the Node build of Lit. However, we don't automatically
+        // set HTMLElement as a global. So, since these tests can run either
+        // with or without the legacy global DOM shim installed, HTMLElement
+        // might not be defined as a global here. We can import it directly from
+        // the minimal DOM shim package, though.
+        const HTMLElement =
+          globalThis.HTMLElement ??
+          (await import('@lit-labs/ssr-dom-shim')).HTMLElement;
         customElements.define('x-norenderer', class extends HTMLElement {});
       },
       render() {
@@ -4621,8 +4744,204 @@ export const tests: {[name: string]: SSRTest} = {
             'le-attr-binding': `<div>\n  [boundProp2]\n</div>`,
           },
         },
+        {
+          args: [undefined],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-attr-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, '');
+          },
+          html: {
+            root: `<le-attr-binding prop="" static></le-attr-binding>`,
+            'le-attr-binding': `<div>\n  []\n</div>`,
+          },
+        },
+        {
+          args: [null],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-attr-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, '');
+          },
+          html: {
+            root: `<le-attr-binding prop="" static></le-attr-binding>`,
+            'le-attr-binding': `<div>\n  []\n</div>`,
+          },
+        },
       ],
       stableSelectors: ['le-attr-binding'],
+    };
+  },
+
+  'LitElement: Reflected number attribute': () => {
+    return {
+      registerElements() {
+        class LEReflectedNumberAttribute extends LitElement {
+          @property({type: Number, reflect: true})
+          num = 42;
+        }
+        customElements.define(
+          'le-reflected-number-attribute',
+          LEReflectedNumberAttribute
+        );
+      },
+      render() {
+        return html`
+          <le-reflected-number-attribute></le-reflected-number-attribute>
+        `;
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector(
+              'le-reflected-number-attribute'
+            )! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as unknown as {num: number}).num, 42);
+          },
+          html: {
+            root: `<le-reflected-number-attribute num="42"></le-reflected-number-attribute>`,
+          },
+        },
+      ],
+      stableSelectors: ['le-reflected-number-attribute'],
+      // The property gets re-reflected to an attribute on upgrade.
+      expectMutationsDuringUpgrade: true,
+      expectMutationsDuringHydration: true,
+    };
+  },
+
+  'LitElement: Reflected boolean attribute': () => {
+    return {
+      registerElements() {
+        class LEReflectedBooleanObjectAttribute extends LitElement {
+          @property({type: Boolean, reflect: true})
+          bool = true;
+        }
+        customElements.define(
+          'le-reflected-boolean-attribute',
+          LEReflectedBooleanObjectAttribute
+        );
+      },
+      render() {
+        return html`
+          <le-reflected-boolean-attribute></le-reflected-boolean-attribute>
+        `;
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector(
+              'le-reflected-boolean-attribute'
+            )! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as unknown as {bool: boolean}).bool, true);
+          },
+          html: {
+            root: `<le-reflected-boolean-attribute bool></le-reflected-boolean-attribute>`,
+          },
+        },
+      ],
+      stableSelectors: ['le-reflected-boolean-attribute'],
+      // The property gets re-reflected to an attribute on upgrade.
+      expectMutationsDuringUpgrade: true,
+      expectMutationsDuringHydration: true,
+    };
+  },
+
+  'LitElement: Reflected object attribute': () => {
+    return {
+      registerElements() {
+        class LEReflectedObjectAttribute extends LitElement {
+          @property({type: Object, reflect: true})
+          obj = {foo: 42};
+        }
+        customElements.define(
+          'le-reflected-object-attribute',
+          LEReflectedObjectAttribute
+        );
+      },
+      render() {
+        return html`
+          <le-reflected-object-attribute></le-reflected-object-attribute>
+        `;
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector(
+              'le-reflected-object-attribute'
+            )! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual(
+              (el as unknown as {obj: {foo: number}}).obj.foo,
+              42
+            );
+          },
+          html: {
+            root: `<le-reflected-object-attribute obj="{&quot;foo&quot;:42}"></le-reflected-object-attribute>`,
+          },
+        },
+      ],
+      stableSelectors: ['le-reflected-object-attribute'],
+      // The property gets re-reflected to an attribute on upgrade.
+      expectMutationsDuringUpgrade: true,
+      expectMutationsDuringHydration: true,
+    };
+  },
+
+  'LitElement: Reflected custom attribute': () => {
+    return {
+      registerElements() {
+        class LEReflectedCustomAttribute extends LitElement {
+          @property({
+            converter: {
+              fromAttribute: (value: string) => {
+                return [...value].reverse().join('');
+              },
+              toAttribute: (value: string) => {
+                return [...value].reverse().join('');
+              },
+            },
+            reflect: true,
+          })
+          custom = 'abc';
+        }
+        customElements.define(
+          'le-reflected-custom-attribute',
+          LEReflectedCustomAttribute
+        );
+      },
+      render() {
+        return html`
+          <le-reflected-custom-attribute></le-reflected-custom-attribute>
+        `;
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector(
+              'le-reflected-custom-attribute'
+            )! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual(
+              (el as unknown as {custom: string}).custom,
+              'abc'
+            );
+          },
+          html: {
+            root: `<le-reflected-custom-attribute custom="cba"></le-reflected-custom-attribute>`,
+          },
+        },
+      ],
+      stableSelectors: ['le-reflected-custom-attribute'],
+      // The property gets re-reflected to an attribute on upgrade.
+      expectMutationsDuringUpgrade: true,
+      expectMutationsDuringHydration: true,
     };
   },
 
@@ -4840,6 +5159,146 @@ export const tests: {[name: string]: SSRTest} = {
         },
       ],
       stableSelectors: ['le-order1'],
+    };
+  },
+
+  'LitElement: defer hydration': () => {
+    return {
+      registerElements() {
+        class LEDefer extends LitElement {
+          @property({type: Number})
+          clicked = 0;
+          handleClick() {
+            this.clicked += 1;
+          }
+          override render() {
+            return html`<button @click=${this.handleClick}>X</button>`;
+          }
+        }
+        customElements.define('le-defer', LEDefer);
+      },
+      render() {
+        return html`<le-defer></le-defer>`;
+      },
+      serverRenderOptions: {
+        deferHydration: true,
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-defer') as LitElement & {
+              clicked: number;
+            };
+            const button = el.shadowRoot!.querySelector('button')!;
+            button.click();
+            assert.equal(el.clicked, 0);
+            el.removeAttribute('defer-hydration');
+            await el.updateComplete;
+            button.click();
+            await el.updateComplete;
+            assert.equal(el.clicked, 1);
+          },
+          html: {
+            root: `<le-defer></le-defer>`,
+            'le-defer': `<button>X</button>`,
+          },
+        },
+      ],
+      stableSelectors: ['le-defer'],
+    };
+  },
+
+  'LitElement: ElementInternals': () => {
+    return {
+      // ElementInternals is not implemented in Safari yet
+      skip: Boolean(
+        globalThis.navigator &&
+          navigator.userAgent.includes('Safari/') &&
+          navigator.userAgent.includes('Version/')
+      ),
+      registerElements() {
+        class LEInternals extends LitElement {
+          constructor() {
+            super();
+            const internals = this.attachInternals() as ElementInternals & {
+              role: string;
+            };
+            internals.role = 'widget';
+          }
+        }
+        customElements.define('le-internals', LEInternals);
+      },
+      render() {
+        return html`<le-internals></le-internals>`;
+      },
+      serverRenderOptions: {
+        deferHydration: true,
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-internals') as LitElement;
+            assert.equal(el.getAttribute('role'), 'widget');
+          },
+          html: {
+            root: `<le-internals role="widget" hydrate-internals-role="widget"></le-internals>`,
+            'le-internals': ``,
+          },
+        },
+      ],
+      stableSelectors: ['le-internals'],
+    };
+  },
+
+  'LitElement: ElementInternals with hydration': () => {
+    return {
+      // ElementInternals is not implemented in Safari yet
+      skip: Boolean(
+        globalThis.navigator &&
+          navigator.userAgent.includes('Safari/') &&
+          navigator.userAgent.includes('Version/')
+      ),
+      registerElements() {
+        class LEInternalsHydrate extends LitElement {
+          internals;
+          constructor() {
+            super();
+            const internals = this.attachInternals() as ElementInternals & {
+              role: string;
+            };
+            internals.role = 'widget';
+            this.internals = internals;
+          }
+        }
+        customElements.define('le-internals-hydrate', LEInternalsHydrate);
+      },
+      render() {
+        return html`<le-internals-hydrate></le-internals-hydrate>`;
+      },
+      serverRenderOptions: {
+        deferHydration: false,
+      },
+      expectations: [
+        {
+          args: [],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector(
+              'le-internals-hydrate'
+            ) as LitElement & {internals: {role: string}};
+            assert.isFalse(el.hasAttribute('role'));
+          },
+          html: {
+            root: `<le-internals-hydrate></le-internals-hydrate>`,
+            'le-internals-hydrate': ``,
+          },
+        },
+      ],
+      expectMutationsDuringHydration: true,
+      expectMutationsDuringUpgrade: true,
+      skipPreHydrationAssertHtml: true,
+      stableSelectors: ['le-internals-hydrate'],
     };
   },
 };

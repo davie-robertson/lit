@@ -11,7 +11,7 @@ import {
   PropertyDeclarations,
   PropertyValues,
   ReactiveElement,
-} from '../reactive-element.js';
+} from '@lit/reactive-element';
 import {generateElementName, nextFrame} from './test-helpers.js';
 import {assert} from '@esm-bundle/chai';
 
@@ -22,6 +22,8 @@ const DEV_MODE = !!ReactiveElement.enableWarning;
 if (DEV_MODE) {
   ReactiveElement.disableWarning?.('change-in-update');
 }
+
+const isIE = navigator.userAgent.indexOf('Trident/') >= 0;
 
 suite('ReactiveElement', () => {
   let container: HTMLElement;
@@ -302,6 +304,79 @@ suite('ReactiveElement', () => {
     assert.equal(el.getAttribute('foo'), 'toAttribute: FooType');
   });
 
+  test('property option `converter` can use a class instance', async () => {
+    class IntegerAttributeConverter
+      implements ComplexAttributeConverter<Number>
+    {
+      private _defaultValue: Number;
+
+      constructor(defaultValue: Number) {
+        this._defaultValue = defaultValue;
+      }
+
+      toAttribute(value: Number, _type?: unknown): unknown {
+        if (!value) {
+          return this._defaultValue;
+        }
+        return `${value}`;
+      }
+
+      fromAttribute(value: string | null, _type?: unknown): Number {
+        if (!value) {
+          return this._defaultValue;
+        }
+
+        const parsedValue = Number.parseInt(value, 10);
+        if (isNaN(parsedValue)) {
+          return this._defaultValue;
+        }
+        return parsedValue;
+      }
+    }
+
+    const defaultIntAttrConverterVal = 1;
+
+    class E extends ReactiveElement {
+      static override get properties() {
+        return {
+          num: {
+            type: Number,
+            converter: new IntegerAttributeConverter(
+              defaultIntAttrConverterVal
+            ),
+            reflect: true,
+          },
+        };
+      }
+
+      num?: number;
+    }
+
+    customElements.define(generateElementName(), E);
+    const el = new E();
+    container.appendChild(el);
+    await el.updateComplete;
+
+    assert.equal(el.getAttribute('num'), null);
+    assert.equal(el.num, undefined);
+
+    el.setAttribute('num', 'notANumber');
+    await el.updateComplete;
+    assert.equal(el.num, defaultIntAttrConverterVal);
+
+    el.num = 10;
+    await el.updateComplete;
+    assert.equal(el.getAttribute('num'), '10');
+
+    el.setAttribute('num', '5');
+    await el.updateComplete;
+    assert.equal(el.num, 5);
+
+    el.num = undefined;
+    await el.updateComplete;
+    assert.equal(el.getAttribute('num'), `${defaultIntAttrConverterVal}`);
+  });
+
   test('property/attribute values when attributes removed', async () => {
     class E extends ReactiveElement {
       static override get properties() {
@@ -497,7 +572,7 @@ suite('ReactiveElement', () => {
     assert.equal(el.getAttribute('obj'), '{"obj":3}');
   });
 
-  test('property reflects when set in response to another propety changing via its attribute being set', async () => {
+  test('property reflects when set in response to another property changing via its attribute being set', async () => {
     class E extends ReactiveElement {
       static override get properties() {
         return {
@@ -658,7 +733,7 @@ suite('ReactiveElement', () => {
   });
 
   if ((Object as Partial<typeof Object>).getOwnPropertySymbols) {
-    test('properties defined using symbols', async () => {
+    (isIE ? test.skip : test)('properties defined using symbols', async () => {
       const zug = Symbol();
 
       class E extends ReactiveElement {
@@ -693,40 +768,43 @@ suite('ReactiveElement', () => {
       assert.equal(el[zug], 66);
     });
 
-    test('properties as symbols can set property options', async () => {
-      const zug = Symbol();
+    (isIE ? test.skip : test)(
+      'properties as symbols can set property options',
+      async () => {
+        const zug = Symbol();
 
-      class E extends ReactiveElement {
-        static override get properties() {
-          return {
-            [zug]: {
-              attribute: 'zug',
-              reflect: true,
-              converter: (value: string) => Number(value) + 100,
-            },
-          };
-        }
+        class E extends ReactiveElement {
+          static override get properties() {
+            return {
+              [zug]: {
+                attribute: 'zug',
+                reflect: true,
+                converter: (value: string) => Number(value) + 100,
+              },
+            };
+          }
 
-        constructor() {
-          super();
-          (this as any)[zug] = 5;
+          constructor() {
+            super();
+            (this as any)[zug] = 5;
+          }
         }
+        customElements.define(generateElementName(), E);
+        const el = new E() as any;
+        container.appendChild(el);
+        await el.updateComplete;
+        assert.equal(el[zug], 5);
+        assert.equal(el.getAttribute('zug'), '5');
+        el[zug] = 6;
+        await el.updateComplete;
+        assert.equal(el[zug], 6);
+        assert.equal(el.getAttribute('zug'), '6');
+        el.setAttribute('zug', '7');
+        await el.updateComplete;
+        assert.equal(el.getAttribute('zug'), '7');
+        assert.equal(el[zug], 107);
       }
-      customElements.define(generateElementName(), E);
-      const el = new E() as any;
-      container.appendChild(el);
-      await el.updateComplete;
-      assert.equal(el[zug], 5);
-      assert.equal(el.getAttribute('zug'), '5');
-      el[zug] = 6;
-      await el.updateComplete;
-      assert.equal(el[zug], 6);
-      assert.equal(el.getAttribute('zug'), '6');
-      el.setAttribute('zug', '7');
-      await el.updateComplete;
-      assert.equal(el.getAttribute('zug'), '7');
-      assert.equal(el[zug], 107);
-    });
+    );
   }
 
   test('property options compose when subclassing', async () => {
@@ -2477,28 +2555,55 @@ suite('ReactiveElement', () => {
     assert.equal(a.getAttribute('bar'), 'yo');
   });
 
-  test('addInitializer', () => {
-    class A extends ReactiveElement {
+  suite('initializers', () => {
+    class Base extends ReactiveElement {
       prop1?: string;
       prop2?: string;
       event?: string;
     }
-    A.addInitializer((a) => {
-      (a as A).prop1 = 'prop1';
+    Base.addInitializer((a) => {
+      (a as Base).prop1 = 'prop1';
     });
-    A.addInitializer((a) => {
-      (a as A).prop2 = 'prop2';
+    Base.addInitializer((a) => {
+      (a as Base).prop2 = 'prop2';
     });
-    A.addInitializer((a) => {
-      a.addEventListener('click', (e) => ((a as A).event = e.type));
+    Base.addInitializer((a) => {
+      a.addEventListener('click', (e) => ((a as Base).event = e.type));
     });
-    customElements.define(generateElementName(), A);
-    const a = new A();
-    container.appendChild(a);
-    assert.equal(a.prop1, 'prop1');
-    assert.equal(a.prop2, 'prop2');
-    a.dispatchEvent(new Event('click'));
-    assert.equal(a.event, 'click');
+    customElements.define(generateElementName(), Base);
+
+    test('addInitializer', () => {
+      const a = new Base();
+      container.appendChild(a);
+      assert.equal(a.prop1, 'prop1');
+      assert.equal(a.prop2, 'prop2');
+      a.dispatchEvent(new Event('click'));
+      assert.equal(a.event, 'click');
+    });
+
+    class Sub extends Base {
+      prop3?: string;
+    }
+    Sub.addInitializer((a) => {
+      (a as Sub).prop3 = 'prop3';
+    });
+    customElements.define(generateElementName(), Sub);
+
+    test('addInitializer on subclass', () => {
+      const s = new Sub();
+      container.appendChild(s);
+      assert.equal(s.prop1, 'prop1');
+      assert.equal(s.prop2, 'prop2');
+      assert.equal(s.prop3, 'prop3');
+      s.dispatchEvent(new Event('click'));
+      assert.equal(s.event, 'click');
+    });
+
+    test('addInitializer on subclass independent from superclass', () => {
+      const b = new Base();
+      container.appendChild(b);
+      assert.notOk((b as any).prop3);
+    });
   });
 
   suite('exceptions', () => {
@@ -2666,7 +2771,7 @@ suite('ReactiveElement', () => {
       assert.equal(a.updatedFoo, 20);
     });
 
-    test('exceptions in `updated` do not prevent further or re-entrant updates', async () => {
+    test('exceptions in `updated` do not prevent further or reentrant updates', async () => {
       let shouldThrow = false;
       let enqueue = false;
       class A extends ReactiveElement {
@@ -3074,5 +3179,108 @@ suite('ReactiveElement', () => {
       el2.setAttribute('foo', 'foo');
       assert.equal(el2.attrValue, 'custom');
     });
+
+    test('PropertyValues<this> type-checks', () => {
+      // This test only checks compile-type behavior. There are no runtime
+      // checks.
+      class E extends ReactiveElement {
+        declare foo: number;
+
+        override update(changedProperties: PropertyValues<this>) {
+          // @ts-expect-error 'bar' is not a keyof this
+          changedProperties.get('bar');
+          // @ts-expect-error 'bar' is not a keyof this
+          changedProperties.set('bar', 1);
+          // @ts-expect-error 'bar' is not a keyof this
+          changedProperties.has('bar');
+          // @ts-expect-error 'bar' is not a keyof this
+          changedProperties.delete('bar');
+          // @ts-expect-error number is not assignable to string
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const w: string = changedProperties.get('foo');
+          // @ts-expect-error string is not assignable to number
+          changedProperties.set('foo', 'hi');
+
+          // This should type-check without a cast:
+          const x: number = changedProperties.get('foo');
+          changedProperties.set('foo', 2);
+
+          // This should type-check without a cast:
+          const propNames: Array<keyof E> = ['foo'];
+          const y = changedProperties.get(propNames[0]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          changedProperties.set(propNames[0], 1 as any);
+
+          changedProperties.forEach((v, k) => {
+            if (k === 'foo') {
+              // This assignment ideally _shouldn't_ fail. tsc should see that
+              // `k === 'foo'` implies `v is typeof this['foo']` (because v is
+              // `this[typeof k]`).
+              // @ts-expect-error tsc should be better
+              const z: number = v;
+              return z;
+            } else {
+              // @ts-expect-error Type 'this[K]' is not assignable to type
+              // 'number'.
+              const z: number = v;
+              return z;
+            }
+          });
+
+          // Suppress no-unused-vars warnings on x and y
+          return {x, y};
+        }
+      }
+      if (E) {
+        // Suppress no-unused-vars warning on E
+      }
+    });
+  });
+
+  test('Maps can be used for changedProperties', () => {
+    // This test only checks compile-type behavior. There are no runtime
+    // checks.
+    class A extends ReactiveElement {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      override update(_changedProperties: Map<string, any>) {}
+    }
+    class B extends ReactiveElement {
+      override update(_changedProperties: Map<string, unknown>) {}
+    }
+    class C extends ReactiveElement {
+      override update(_changedProperties: Map<string | number, unknown>) {}
+    }
+    class D extends ReactiveElement {
+      override update(_changedProperties: Map<string, string>) {}
+    }
+    if (A || B || C || D) {
+      // Suppress no-unused-vars warnings
+    }
+  });
+
+  test('PropertyValues<T> works with subtyping', () => {
+    // This test only checks compile-type behavior. There are no runtime
+    // checks.
+    class A extends ReactiveElement {
+      foo!: number;
+      override update(changedProperties: PropertyValues<A>) {
+        const n: number = changedProperties.get('foo');
+        if (n) {
+          //Suppress no-unused-vars warnings
+        }
+      }
+    }
+    class B extends A {
+      bar!: string;
+      override update(changedProperties: PropertyValues<B>) {
+        const s: string = changedProperties.get('bar');
+        if (s) {
+          //Suppress no-unused-vars warnings
+        }
+      }
+    }
+    if (A || B) {
+      // Suppress no-unused-vars warnings
+    }
   });
 });

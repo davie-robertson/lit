@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.11.4
+
+### Patch Changes
+
+- [#3198](https://github.com/lit/lit/pull/3198) [`0162fbad`](https://github.com/lit/lit/commit/0162fbad61826ba0ff4188135ca4ab778762c4d7) - TS sources are now inlined in the JS source maps
+
+- Updated dependencies [[`daddeb34`](https://github.com/lit/lit/commit/daddeb346a2f454b25a6a5d1722683197f25fbcd), [`6361a4b4`](https://github.com/lit/lit/commit/6361a4b4a589465cf6836c8454ed8ca4521d7b4d), [`ae6f6808`](https://github.com/lit/lit/commit/ae6f6808f539254b72ec7efcff34b812173abe64)]:
+  - lit@2.3.0
+  - @lit/reactive-element@1.4.0
+
+## 0.11.3
+
+### Patch Changes
+
+- [#2972](https://github.com/lit/lit/pull/2972) [`ee864b6d`](https://github.com/lit/lit/commit/ee864b6dd6616d6cb72924089581af220196c894) - Fix multiple runtime msg call with same template but different expressions
+
+## 0.11.2
+
+### Patch Changes
+
+- [#2402](https://github.com/lit/lit/pull/2402) [`a638841d`](https://github.com/lit/lit/commit/a638841d8ba76e43cf83a2516e2cfc7a9c2ce27e) - Trivial: reformat markdown files
+
 ## 0.11.1
 
 ### Patch Changes
@@ -131,19 +153,11 @@ Before:
 class HomePage {
   hello() {
     // msgdesc: Greeting to Earth
-    return msg(
-      html`
-        Hello World
-      `
-    );
+    return msg(html`Hello World`);
   }
   goodbye() {
     // msgdesc: Farewell to Earth
-    return msg(
-      html`
-        Goodbye World
-      `
-    );
+    return msg(html`Goodbye World`);
   }
 }
 ```
@@ -153,24 +167,14 @@ After:
 ```js
 class HomePage {
   hello() {
-    return msg(
-      html`
-        Hello World
-      `,
-      {
-        desc: 'Home page / Greeting to Earth'
-      }
-    );
+    return msg(html`Hello World`, {
+      desc: 'Home page / Greeting to Earth',
+    });
   }
   goodbye() {
-    return msg(
-      html`
-        Goodbye World
-      `,
-      {
-        desc: 'Home page / Farewell to Earth'
-      }
-    );
+    return msg(html`Goodbye World`, {
+      desc: 'Home page / Farewell to Earth',
+    });
   }
 }
 ```
@@ -192,23 +196,13 @@ class HomePage {
   Before:
 
   ```ts
-  msg(
-    name =>
-      html`
-        Hello <b>${name}</b>!
-      `,
-    {args: [getUsername()]}
-  );
+  msg((name) => html`Hello <b>${name}</b>!`, {args: [getUsername()]});
   ```
 
   After:
 
   ```ts
-  msg(
-    html`
-      Hello <b>${getUsername()}</b>!
-    `
-  );
+  msg(html`Hello <b>${getUsername()}</b>!`);
   ```
 
   Plain strings containing expressions must now be tagged with the new `str`
@@ -276,7 +270,7 @@ class HomePage {
 ### Fixed
 
 - Fixed `main` field of `package.json` so that it resolves to `lit-localize.js`
-  instead of non-existent file.
+  instead of nonexistent file.
 
 ## [0.4.0] - 2020-09-08
 
@@ -371,9 +365,7 @@ class HomePage {
   msg(
     'hello',
     (url: string, name: string) =>
-      html`
-        Hello ${name}, click <a href="${url}">here</a>!
-      `,
+      html`Hello ${name}, click <a href="${url}">here</a>!`,
     'World',
     'https://www.example.com/'
   );

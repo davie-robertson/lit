@@ -8,6 +8,7 @@ import {litLocalizeTransform} from '../modes/transform.js';
 import ts from 'typescript';
 import {Message, makeMessageIdMap} from '../messages.js';
 import {test} from 'uvu';
+// eslint-disable-next-line import/extensions
 import * as assert from 'uvu/assert';
 import prettier from 'prettier';
 import {
@@ -141,9 +142,9 @@ test('html(msg(html)) translated', () => {
           name: 'foo',
           contents: [
             'Hola ',
-            {untranslatable: '<i>'},
+            {untranslatable: '<i>', index: 0},
             'Mundo',
-            {untranslatable: '</i>'},
+            {untranslatable: '</i>', index: 1},
           ],
         },
       ],
@@ -166,7 +167,7 @@ test('msg(string(expr)) translated', () => {
       messages: [
         {
           name: 'foo',
-          contents: ['Hola ', {untranslatable: '${name}'}, '!'],
+          contents: ['Hola ', {untranslatable: '${name}', index: 0}, '!'],
         },
       ],
     }
@@ -188,7 +189,7 @@ test('msg(string(string)) translated', () => {
       messages: [
         {
           name: 'foo',
-          contents: ['Hola ', {untranslatable: '${"World"}'}, '!'],
+          contents: ['Hola ', {untranslatable: '${"World"}', index: 0}, '!'],
         },
       ],
     }
@@ -210,7 +211,11 @@ test('msg(html(expr)) translated', () => {
       messages: [
         {
           name: 'foo',
-          contents: ['Hola ', {untranslatable: '<b>${name}</b>'}, '!'],
+          contents: [
+            'Hola ',
+            {untranslatable: '<b>${name}</b>', index: 0},
+            '!',
+          ],
         },
       ],
     }
@@ -232,7 +237,37 @@ test('msg(html(string)) translated', () => {
       messages: [
         {
           name: 'foo',
-          contents: ['Hola ', {untranslatable: '<b>${"World"}</b>'}, '!'],
+          contents: [
+            'Hola ',
+            {untranslatable: '<b>${"World"}</b>', index: 0},
+            '!',
+          ],
+        },
+      ],
+    }
+  );
+});
+
+test('multiple expression-placeholders and order switching', () => {
+  checkTransform(
+    `const x = 'x';
+    const y = 'y';
+    const z = 'z';
+    msg(html\`a \${x}\${y} b \${z}\`, {id: "foo"});`,
+    `const x = 'x';
+    const y = 'y';
+    const z = 'z';
+    html\`B \${z} A \${x}\${y}\`;`,
+    {
+      messages: [
+        {
+          name: 'foo',
+          contents: [
+            'B ',
+            {untranslatable: 'N/A-1', index: 1},
+            ' A ',
+            {untranslatable: 'N/A-0', index: 0},
+          ],
         },
       ],
     }
@@ -256,7 +291,7 @@ test('msg(html(html)) translated', () => {
           name: 'foo',
           contents: [
             'Hola ',
-            {untranslatable: '<b>${html`<i>World</i>`}</b>'},
+            {untranslatable: '<b>${html`<i>World</i>`}</b>', index: 0},
             '!',
           ],
         },
@@ -282,7 +317,7 @@ test('msg(string(msg(string))) translated', () => {
           name: 'foo',
           contents: [
             'Hola ',
-            {untranslatable: '${msg("World", {id: "bar"})}'},
+            {untranslatable: '${msg("World", {id: "bar"})}', index: 0},
             '!',
           ],
         },
@@ -298,17 +333,89 @@ test('msg(string(msg(string))) translated', () => {
 test('msg(string(<b>msg(string)</b>)) translated', () => {
   checkTransform(
     'msg(str`Hello <b>${msg("World", {id: "bar"})}</b>!`, {id: "foo"});',
-    '`Hola <b>Mundo</b>!`;',
+    '`Hola &lt;b&gt;Mundo&lt;/b&gt;!`;',
     {
       messages: [
         {
           name: 'foo',
           contents: [
-            'Hola ',
-            {untranslatable: '<b>${msg("World", {id: "bar"})}</b>'},
-            '!',
+            'Hola <b>',
+            {untranslatable: '${msg("World", {id: "bar"})}', index: 0},
+            '</b>!',
           ],
         },
+        {
+          name: 'bar',
+          contents: ['Mundo'],
+        },
+      ],
+    }
+  );
+});
+
+test('html(msg(string)) with msg as attr value', () => {
+  checkTransform(
+    'html`Hello <b bar=${msg("World", {id: "bar"})}>${"World"}</b>!`;',
+    'html`Hello <b bar=${"World"}>World</b>!`;'
+  );
+});
+
+test('html(msg(string)) with msg as attr value translated', () => {
+  checkTransform(
+    'html`Hello <b bar=${msg("world", {id: "bar"})}>${"World"}</b>!`;',
+    'html`Hello <b bar=${`Mundo`}>World</b>!`;',
+    {
+      messages: [
+        {
+          name: 'bar',
+          contents: ['Mundo'],
+        },
+      ],
+    }
+  );
+});
+
+test('html(msg(string)) with multiple msg as attr value', () => {
+  checkTransform(
+    'html`<b foo=${msg("Hello", {id: "foo"})}>${"Hello"}</b>' +
+      '<b bar=${msg("World", {id: "bar"})}>${"World"}</b>!`;',
+    'html`<b foo=${"Hello"}>Hello</b><b bar=${"World"}>World</b>!`;'
+  );
+});
+
+test('html(msg(string)) with multiple msg as attr value translated', () => {
+  checkTransform(
+    'html`<b foo=${msg("Hello", {id: "foo"})}>${"Hello"}</b>' +
+      '<b bar=${msg("World", {id: "bar"})}>${"World"}</b>!`;',
+    'html`<b foo=${`Hola`}>Hello</b><b bar=${`Mundo`}>World</b>!`;',
+    {
+      messages: [
+        {
+          name: 'foo',
+          contents: ['Hola'],
+        },
+        {
+          name: 'bar',
+          contents: ['Mundo'],
+        },
+      ],
+    }
+  );
+});
+
+test('html(msg(string)) with msg as property attr value', () => {
+  checkTransform(
+    'html`Hello <b .bar=${msg("World", {id: "bar"})}>${"World"}</b>!`;',
+    'html`Hello <b .bar=${"World"}>World</b>!`;'
+  );
+});
+
+test('html(msg(string)) with msg as property attr value translated', () => {
+  checkTransform(
+    'html`Hello <b .bar=${msg("World", {id: "bar"})}>${"World"}</b>!`;',
+    'html`Hello <b .bar=${`Mundo`}>World</b>!`;',
+    {
+      messages: [
         {
           name: 'bar',
           contents: ['Mundo'],

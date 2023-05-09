@@ -42,7 +42,7 @@
  *     AsyncDirective(D2)
  *   ._value // user value was TemplateResult
  *     TemplateInstance(T3) _$dC=[A4,A6,N10,N12]
- *      ._parts[]
+ *      ._$parts[]
  *        AttributePart(A4) _$dC=[D5]
  *         ._directives[]
  *           AsyncDirective(D5)
@@ -70,7 +70,7 @@
  *                AsyncDirective(D17)
  *              ._value // user value was TemplateResult
  *                TemplateInstance(T18) _$dC=[A19,A21,N25]
- *                 ._parts[]
+ *                 ._$parts[]
  *                   AttributePart(A19) _$dC=[D20]
  *                    ._directives[]
  *                      AsyncDirective(D20)
@@ -115,13 +115,13 @@
  * recursively run `setConnected()` over the entire tree, without removing any
  * children from `_$disconnectableChildren`, since this tree is required to
  * re-connect the tree, which does the same operation, simply passing
- * `isConnectd: true` down the tree, signaling which callback to run.
+ * `isConnected: true` down the tree, signaling which callback to run.
  */
 
 import {AttributePart, ChildPart, Disconnectable, Part} from './lit-html.js';
 import {isSingleExpression} from './directive-helpers.js';
 import {Directive, PartInfo, PartType} from './directive.js';
-export {directive} from './directive.js';
+export * from './directive.js';
 
 const DEV_MODE = true;
 

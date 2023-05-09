@@ -1,5 +1,77 @@
 # Change Log
 
+## 1.1.1
+
+### Patch Changes
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - Add console warning for reserved react properties found on a wrapped web component in dev mode only.
+
+- [#3507](https://github.com/lit/lit/pull/3507) [`b152db29`](https://github.com/lit/lit/commit/b152db291932aa25356543395251a9b42e12292d) - Filter \_\_forwaredRef from build.
+
+## 1.1.0
+
+### Minor Changes
+
+- [#2988](https://github.com/lit/lit/pull/2988) [`2d10c26d`](https://github.com/lit/lit/commit/2d10c26d6c526faafacc5d28d0f70f671e72560d) - Provide a params object to createComponent to improve developer experience and make it easier to maintain and add future features.
+
+- [#3128](https://github.com/lit/lit/pull/3128) [`491d0e37`](https://github.com/lit/lit/commit/491d0e379dda03787de088b0c4a74b5234ac4940) - Application of react props on web components matches the behavior of setting props on dom elements.
+
+## 1.0.9
+
+### Patch Changes
+
+- [#3163](https://github.com/lit/lit/pull/3163) [`1212ddd0`](https://github.com/lit/lit/commit/1212ddd0744529c294ea3905782917172c5aa11e) - Provide the explicit return type `WrappedWebComponent` for `createComponent`. This exposes an explicit typing for wrapped components rather than relying on inferences from Typescript. A well defined type should provide more resilience for implementations like SSR and others.
+
+## 1.0.8
+
+### Patch Changes
+
+- [#2800](https://github.com/lit/lit/pull/2800) [`043d9c80`](https://github.com/lit/lit/commit/043d9c80de59177335fa6543d5654e0295f5a743) - Support setting custom accessors by using an 'in' check instead of a for/in loop to check for properties.
+
+## 1.0.7
+
+### Patch Changes
+
+- [#3072](https://github.com/lit/lit/pull/3072) [`94722633`](https://github.com/lit/lit/commit/947226339746d5795a8ded3d19d51d3d6fdf7b0e) - Avoid nested component props type declarations. Incrementally define what types are needed rather than nesting.
+
+- [#3067](https://github.com/lit/lit/pull/3067) [`f3e3cddf`](https://github.com/lit/lit/commit/f3e3cddf5e03602558c92306ed4fc0234767ac39) - Fixed an error that occurs when compiling TS. The error occurs when createComponent() is not provided an event map causing instance properties to be confused with event handlers.
+
+- [#3111](https://github.com/lit/lit/pull/3111) [`6158482c`](https://github.com/lit/lit/commit/6158482c4123d74c29eb1ba2307c5aa2d059c041) - Removed the unexposed and unnecessary `StringValued` type used to correlate property names with event listener names.
+
+- [#3132](https://github.com/lit/lit/pull/3132) [`2fe2053f`](https://github.com/lit/lit/commit/2fe2053fe04e7226e5fa4e8b730e91a62a547b27) - Added "types" entry to package exports. This tells newer versions of TypeScript where to look for typings for each module.
+
+## 1.0.6
+
+### Patch Changes
+
+- [#3050](https://github.com/lit/lit/pull/3050) [`5227ca52`](https://github.com/lit/lit/commit/5227ca52863ac6fd9f3ee57d7a6c78ea1e617b56) - Fix a property collision in the minified production build.
+
+## 1.0.5
+
+### Patch Changes
+
+- [#2987](https://github.com/lit/lit/pull/2987) [`93b30f7d`](https://github.com/lit/lit/commit/93b30f7de81eb203ad88abfc1e0e87a719d132c5) - [labs/react] `useController` is compatible with React strict mode.
+
+- [#2960](https://github.com/lit/lit/pull/2960) [`16a900c7`](https://github.com/lit/lit/commit/16a900c7d0191140a65cdb38126ab3653c334935) - Fix `'@lit-labs/react/use-controller.js'` not being correctly exported from package.json.
+
+## 1.0.4
+
+### Patch Changes
+
+- [#2678](https://github.com/lit/lit/pull/2678) [`80e701e2`](https://github.com/lit/lit/commit/80e701e25cfac71d220acb646c6f4964c829de84) - Skip the \_\_forwardedRef when passing component props to element.
+
+## 1.0.3
+
+### Patch Changes
+
+- [#2648](https://github.com/lit/lit/pull/2648) [`7cb492a3`](https://github.com/lit/lit/commit/7cb492a37352ea2402f783bf83fa0bef7ed29036) - Event callbacks can be typed by casting with EventHandler
+
+## 1.0.2
+
+### Patch Changes
+
+- [#2410](https://github.com/lit/lit/pull/2410) [`b9a6962b`](https://github.com/lit/lit/commit/b9a6962b84c841eaabd5c4cbf8687ff34dbfe511) - Correct the link path of CONTRIBUTING.md in README.md files
+
 ## 1.0.1
 
 ### Patch Changes
@@ -68,7 +140,7 @@ Changes below were based on the [Keep a Changelog](http://keepachangelog.com/) f
 
 ### Added
 
-- Added `useControler()` hook for creating React hooks from Reactive Controllers ([#1532](https://github.com/Polymer/lit-html/pulls/1532)).
+- Added `useController()` hook for creating React hooks from Reactive Controllers ([#1532](https://github.com/Polymer/lit-html/pulls/1532)).
 
 ## [1.0.0-pre.2] - 2021-03-31
 

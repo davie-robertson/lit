@@ -21,6 +21,7 @@ export default litProdConfig({
     'decorators/property',
     'decorators/query',
     'decorators/query-all',
+    'decorators/query-assigned-elements',
     'decorators/query-assigned-nodes',
     'decorators/query-async',
   ],
@@ -30,4 +31,5 @@ export default litProdConfig({
       file: 'polyfill-support',
     },
   ],
+  includeNodeBuild: true,
 });

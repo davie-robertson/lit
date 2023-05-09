@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import {Disconnectable, Part} from './lit-html';
+import {Disconnectable, Part} from './lit-html.js';
 
 export {
   AttributePart,
@@ -14,7 +14,7 @@ export {
   EventPart,
   Part,
   PropertyPart,
-} from './lit-html';
+} from './lit-html.js';
 
 export interface DirectiveClass {
   new (part: PartInfo): Directive;
@@ -48,7 +48,7 @@ export const PartType = {
   ELEMENT: 6,
 } as const;
 
-export type PartType = typeof PartType[keyof typeof PartType];
+export type PartType = (typeof PartType)[keyof typeof PartType];
 
 export interface ChildPartInfo {
   readonly type: typeof PartType.CHILD;

@@ -151,4 +151,4 @@ const positionStyle = ({x, y}: Position2D) =>
 
 ## Contributing
 
-Please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+Please see [CONTRIBUTING.md](../../../CONTRIBUTING.md).

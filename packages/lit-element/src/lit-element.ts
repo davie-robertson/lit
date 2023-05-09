@@ -5,15 +5,15 @@
  */
 
 /**
- * The main LitElement module, which defines the [[`LitElement`]] base class and
- * related APIs.
+ * The main LitElement module, which defines the {@linkcode LitElement} base
+ * class and related APIs.
  *
  *  LitElement components can define a template and a set of observed
  * properties. Changing an observed property triggers a re-render of the
  * element.
  *
- *  Import [[`LitElement`]] and [[`html`]] from this module to create a
- * component:
+ *  Import {@linkcode LitElement} and {@linkcode html} from this module to
+ * create a component:
  *
  *  ```js
  * import {LitElement, html} from 'lit-element';
@@ -40,9 +40,9 @@
  * customElements.define('my-element', MyElement);
  * ```
  *
- * `LitElement` extends [[`ReactiveElement`]] and adds lit-html templating.
- * The `ReactiveElement` class is provided for users that want to build
- * their own custom element base classes that don't use lit-html.
+ * `LitElement` extends {@linkcode ReactiveElement} and adds lit-html
+ * templating. The `ReactiveElement` class is provided for users that want to
+ * build their own custom element base classes that don't use lit-html.
  *
  * @packageDocumentation
  */
@@ -50,6 +50,34 @@ import {PropertyValues, ReactiveElement} from '@lit/reactive-element';
 import {render, RenderOptions, noChange, RootPart} from 'lit-html';
 export * from '@lit/reactive-element';
 export * from 'lit-html';
+
+import {LitUnstable} from 'lit-html';
+import {ReactiveUnstable} from '@lit/reactive-element';
+
+/**
+ * Contains types that are part of the unstable debug API.
+ *
+ * Everything in this API is not stable and may change or be removed in the future,
+ * even on patch releases.
+ */
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace Unstable {
+  /**
+   * When Lit is running in dev mode and `window.emitLitDebugLogEvents` is true,
+   * we will emit 'lit-debug' events to window, with live details about the update and render
+   * lifecycle. These can be useful for writing debug tooling and visualizations.
+   *
+   * Please be aware that running with window.emitLitDebugLogEvents has performance overhead,
+   * making certain operations that are normally very cheap (like a no-op render) much slower,
+   * because we must copy data and dispatch events.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  export namespace DebugLog {
+    export type Entry =
+      | LitUnstable.DebugLog.Entry
+      | ReactiveUnstable.DebugLog.Entry;
+  }
+}
 
 // For backwards compatibility export ReactiveElement as UpdatingElement. Note,
 // IE transpilation requires exporting like this.
@@ -81,7 +109,8 @@ if (DEV_MODE) {
  *
  * To define a component, subclass `LitElement` and implement a
  * `render` method to provide the component's template. Define properties
- * using the [[`properties`]] property or the [[`property`]] decorator.
+ * using the {@linkcode LitElement.properties properties} property or the
+ * {@linkcode property} decorator.
  */
 export class LitElement extends ReactiveElement {
   /**
@@ -269,7 +298,7 @@ export const _$LE = {
 
 // IMPORTANT: do not change the property name or the assignment expression.
 // This line will be used in regexes to search for LitElement usage.
-(globalThis.litElementVersions ??= []).push('3.0.2');
+(globalThis.litElementVersions ??= []).push('3.3.2');
 if (DEV_MODE && globalThis.litElementVersions.length > 1) {
   issueWarning!(
     'multiple-versions',
